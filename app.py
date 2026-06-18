@@ -97,16 +97,11 @@ def load_data_peta():
         if 'Kecocokan' in df.columns: df.rename(columns={'Kecocokan': 'Status'}, inplace=True)
 
         if 'Lat' in df.columns and 'Lon' in df.columns:
-            # Memastikan format data adalah numerik
             df['Lat'] = pd.to_numeric(df['Lat'], errors='coerce')
             df['Lon'] = pd.to_numeric(df['Lon'], errors='coerce')
-            
-            # Forward fill untuk menangani merge cell
             df['Lat'] = df['Lat'].ffill()
             df['Lon'] = df['Lon'].ffill()
             df = df.dropna(subset=['Lat', 'Lon'])
-            
-            # Menghapus baris dengan koordinat duplikat agar titik riil akurat
             df = df.drop_duplicates(subset=['Lat', 'Lon'], keep='first')
             
     return df
@@ -205,7 +200,7 @@ elif st.session_state.page == 'fitur_peta':
         
         st.markdown("<br>", unsafe_allow_html=True)
         if not df_data.empty:
-            st.success(f"Data Berhasil Dimuat: {len(df_data)} Titik Unik Observasi")
+            st.success("Berhasil memuat data") # Teks telah diubah sesuai instruksi
         else:
             st.error("Data tidak terdeteksi di server.")
             
@@ -221,7 +216,6 @@ elif st.session_state.page == 'fitur_peta':
             for _, row in df_data.iterrows():
                 kategori = str(row.get('Status', '')).strip().lower()
                 
-                # PALET WARNA RAMAH BUTA WARNA
                 if kategori == 'cocok': warna = '#0072B2'
                 elif kategori == 'netral': warna = '#E69F00'
                 else: warna = '#D55E00'
@@ -329,7 +323,6 @@ elif st.session_state.page == 'fitur_pupuk':
     st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 15px 0 25px 0;'>", unsafe_allow_html=True)
     
     try:
-        # Membaca data langsung dari file Excel yang valid
         df_pengukuran = pd.read_excel('DataPengukuran1.xlsx')
         df_pengukuran.columns = df_pengukuran.columns.str.strip()
         
@@ -343,7 +336,6 @@ elif st.session_state.page == 'fitur_pupuk':
         st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 25px 0;'>", unsafe_allow_html=True)
         st.markdown("<h4>Metrik Kandungan Hara</h4>", unsafe_allow_html=True)
         
-        # Ekstraksi aman nilai NPK dari Excel
         n_val = data_terpilih.get('N', 0)
         p_val = data_terpilih.get('P', 0)
         k_val = data_terpilih.get('K', 0)
@@ -356,7 +348,6 @@ elif st.session_state.page == 'fitur_pupuk':
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("<h4>Analisis & Rekomendasi Tindakan</h4>", unsafe_allow_html=True)
         
-        # Menerapkan logika porting dari fungsi MATLAB Anda
         for unsur, val in [('Nitrogen (N)', n_val), ('Fosfor (P)', p_val), ('Kalium (K)', k_val)]:
             kategori = klasifikasi_hara(val)
             st.info(f"**Status {unsur}: {kategori.upper()}**")
@@ -365,6 +356,6 @@ elif st.session_state.page == 'fitur_pupuk':
             st.markdown("<br>", unsafe_allow_html=True)
 
     except FileNotFoundError:
-        st.error("File 'DataPengukuran1.xlsx' tidak ditemukan. Pastikan file tersebut sudah diunggah (Commit) ke GitHub dengan nama yang persis sama.")
+        st.error("File 'DataPengukuran1.xlsx' tidak ditemukan. Pastikan file tersebut sudah diunggah ke GitHub.")
     except Exception as e:
-        st.error(f"Terjadi kesalahan saat membaca data: {e}")
+        st.error(f"Terjadi kesalahan saat membaca data: {e}. Pastikan pustaka openpyxl sudah diinstal melalui requirements.txt.")
