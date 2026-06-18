@@ -18,7 +18,7 @@ if 'clicked_lat' not in st.session_state:
 # --- 2. CSS: GLASSMORPHISM TOTAL SIMETRIS & SEIMBANG DI TENGAH ---
 st.markdown("""
     <style>
-    /* Sembunyikan elemen bawaan Streamlit yang mengganggu */
+    /* Sembunyikan elemen bawaan Streamlit */
     [data-testid="stSidebar"], [data-testid="collapsedControl"], header { display: none !important; }
 
     /* Latar Belakang Pertanian Realistis */
@@ -29,7 +29,7 @@ st.markdown("""
         background-position: center;
     }
 
-    /* WADAH UTAMA: Menjamin posisi panel kaca buram benar-benar berada di tengah (Center-Aligned) */
+    /* WADAH UTAMA: Posisi panel kaca buram benar-benar berada di tengah (Center-Aligned) */
     .block-container {
         background-color: rgba(20, 32, 20, 0.65) !important;
         backdrop-filter: blur(12px);
@@ -37,8 +37,6 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.18);
         border-radius: 16px;
         padding: 40px 50px !important;
-        
-        /* Teknik posisi simetris tengah */
         max-width: 1140px !important;
         margin-left: auto !important;
         margin-right: auto !important;
@@ -47,7 +45,7 @@ st.markdown("""
         box-shadow: 0 15px 35px rgba(0,0,0,0.4);
     }
 
-    /* Memastikan semua komponen teks bawaan menjadi putih cerah agar kontras di atas panel gelap */
+    /* Memastikan semua komponen teks bawaan menjadi putih cerah */
     .stMarkdown, .stText, label, .stMarkdown p, h1, h2, h3, h4, h5, h6 {
         color: #ffffff !important;
     }
@@ -64,7 +62,7 @@ st.markdown("""
     .stButton>button {
         background-color: rgba(45, 106, 79, 0.95);
         color: white !important;
-        border: 1px solid rgba(255,255,255,0.3);
+        border: 1px solid rgba(255, 255, 255, 0.3);
         border-radius: 6px;
         padding: 10px 20px;
         font-weight: 600;
@@ -128,7 +126,7 @@ def hitung_jarak_haversine(lat1, lon1, lat2, lon2):
 df_data = load_data()
 
 # ==========================================
-# HALAMAN 1: BERANDA Utama (GLASSMORPHISM)
+# HALAMAN 1: BERANDA UTAMA (GLASSMORPHISM)
 # ==========================================
 if st.session_state.page == 'beranda':
     st.markdown("<br><br>", unsafe_allow_html=True)
@@ -187,14 +185,30 @@ elif st.session_state.page == 'fitur_peta':
             for _, row in df_data.iterrows():
                 kategori = str(row.get('Status', '')).strip().lower()
                 
-                if kategori == 'cocok': warna = '#00FF00'
-                elif kategori == 'netral': warna = '#FFFF00'
-                else: warna = '#FF0000'
+                # REVISI PALET WARNA BARU (RAMAH BUTA WARNA / COLORBLIND FRIENDLY)
+                if kategori == 'cocok': 
+                    warna = '#0072B2'       # Biru Cerah Kontras Tinggi
+                elif kategori == 'netral': 
+                    warna = '#E69F00'       # Oranye/Jingga Semburat Kuning
+                else: 
+                    warna = '#D55E00'       # Merah Bata / Cokelat Kemerahan
 
                 ph_tanah = row.get('PH_S1', 'N/A')
                 elev = row.get('Elevasi', 'N/A')
+                desa = row.get('Desa', 'N/A')
+                kabupaten = row.get('Kabupaten', 'N/A')
                 
-                popup_text = f"<div style='color: black; font-family: sans-serif;'><b>{kategori.upper()}</b><br>Elevasi: {elev} mdpl<br>pH: {ph_tanah}</div>"
+                # REVISI POP-UP: Menambahkan informasi Wilayah Desa dan Kabupaten
+                popup_text = f"""
+                <div style='color: black; font-family: sans-serif; font-size: 12px; line-height: 1.5; min-width: 150px;'>
+                    <b style='font-size: 13px; color: {warna};'>{kategori.upper()}</b><br>
+                    <hr style='margin: 4px 0; border: 0; border-top: 1px solid #ccc;'>
+                    <b>Desa:</b> {desa}<br>
+                    <b>Kabupaten:</b> {kabupaten}<br>
+                    <b>Elevasi:</b> {elev} mdpl<br>
+                    <b>pH:</b> {ph_tanah}
+                </div>
+                """
                 
                 folium.CircleMarker(
                     location=[row['Lat'], row['Lon']],
@@ -204,7 +218,7 @@ elif st.session_state.page == 'fitur_peta':
                     fill=True, 
                     fill_color=warna, 
                     fill_opacity=1.0,
-                    popup=folium.Popup(popup_text, max_width=200)
+                    popup=folium.Popup(popup_text, max_width=250)
                 ).add_to(m)
 
         if st.session_state.clicked_lat is not None:
@@ -224,7 +238,7 @@ elif st.session_state.page == 'fitur_peta':
             st.session_state.clicked_lon = lon_klik
             st.rerun()
 
-    # --- PANEL HASIL PREDIKSI & DATA REFERENSI RANGE JARAK ---
+    # --- PANEL HASIL PREDIKSI & DATA REFERENSI ---
     if st.session_state.clicked_lat is not None:
         st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 30px 0 20px 0;'>", unsafe_allow_html=True)
         
@@ -238,10 +252,8 @@ elif st.session_state.page == 'fitur_peta':
                 df_working = df_data.copy()
                 df_working['Jarak_Km'] = df_working.apply(lambda r: hitung_jarak_haversine(lat_eval, lon_eval, r['Lat'], r['Lon']), axis=1)
                 
-                # Saring data acuan yang hanya masuk dalam radius yang dipilih pengguna
                 df_terfilter = df_working[df_working['Jarak_Km'] <= radius_km].copy()
                 
-                # Pemisahan Tampilan: Hasil Prediksi di Atas, Tabel Ketinggian & pH di Bawah
                 st.markdown("<h4>Hasil Evaluasi Lokasi</h4>", unsafe_allow_html=True)
                 st.write(f"Koordinat Titik Uji: {lat_eval:.5f}, {lon_eval:.5f} | Ketinggian Tanah: {elevasi_satelit:.1f} mdpl")
                 
@@ -253,7 +265,6 @@ elif st.session_state.page == 'fitur_peta':
                     if elevasi_satelit < (elev_min - 50.0) or elevasi_satelit > (elev_max + 50.0):
                         st.error(f"🟥 **TIDAK COCOK:** Ketinggian lokasi berada di luar batas toleransi wilayah terdekat (Rentang Ketinggian Acuan: {elev_min:.0f} - {elev_max:.0f} mdpl).")
                     else:
-                        # Menghitung mayoritas kategori dari data historis
                         hitung_suara = df_terfilter['Status'].str.lower().value_counts()
                         
                         if len(hitung_suara) > 1 and hitung_suara.iloc[0] == hitung_suara.iloc[1]:
@@ -267,11 +278,9 @@ elif st.session_state.page == 'fitur_peta':
                             else:
                                 st.error("🟥 **TIDAK COCOK:** Mayoritas objek data observasi historis tidak merekomendasikan komoditas ini.")
                     
-                    # FITUR TERBARU: Menampilkan tabel ringkas berisi Ketinggian dan pH dari semua objek acuan di dalam radius
                     st.markdown("<br>", unsafe_allow_html=True)
                     st.markdown(f"<h5>Data Ketinggian & pH dari Objek Acuan Terdekat (Radius {radius_km} Km)</h5>", unsafe_allow_html=True)
                     
-                    # Merapikan tampilan kolom untuk disajikan ke pengguna
                     df_tabel = df_terfilter[['Kabupaten', 'Desa', 'Elevasi', 'PH_S1', 'Status', 'Jarak_Km']].copy()
                     df_tabel['Jarak_Km'] = df_tabel['Jarak_Km'].round(2)
                     df_tabel.rename(columns={
@@ -281,7 +290,6 @@ elif st.session_state.page == 'fitur_peta':
                         'Jarak_Km': 'Jarak ke Lokasi Uji (Km)'
                     }, inplace=True)
                     
-                    # Menampilkan tabel data spasial yang elegan di dalam panel kaca
                     st.dataframe(df_tabel, use_container_width=True, hide_index=True)
             else:
                 st.error("Gagal terhubung dengan server koordinat satelit untuk menarik data elevasi.")
