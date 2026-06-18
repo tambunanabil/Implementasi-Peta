@@ -7,57 +7,42 @@ import requests
 import numpy as np
 
 # --- 1. KONFIGURASI HALAMAN ---
-st.set_page_config(page_title="Sistem Informasi Lahan Kentang", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="AgriGIS | Lahan Kentang", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. CUSTOM CSS: TEMA PERTANIAN ELEGAN & LATAR BELAKANG ---
+# Inisialisasi Memori untuk menyimpan titik klik pengguna
+if 'clicked_lat' not in st.session_state:
+    st.session_state.clicked_lat = None
+    st.session_state.clicked_lon = None
+
+# --- 2. CUSTOM CSS: TEMA PERTANIAN ELEGAN (DARKER BACKGROUND) ---
 st.markdown("""
     <style>
-    /* Menyembunyikan Sidebar secara total */
     [data-testid="stSidebar"] { display: none !important; }
     [data-testid="collapsedControl"] { display: none !important; }
 
-    /* Menambahkan Latar Belakang Gambar Pertanian */
+    /* Latar Belakang Pertanian yang Lebih Gelap/Teduh */
     .stApp {
-        background-image: url("https://images.unsplash.com/photo-1595841696677-6489ff3f8cd1?q=80&w=1200&auto=format&fit=crop");
+        background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6)), url("https://images.unsplash.com/photo-1516253593875-bd7ba052fbc5?q=80&w=1200&auto=format&fit=crop");
         background-size: cover;
         background-attachment: fixed;
         background-position: center;
     }
     
-    /* Memberikan latar belakang semi-transparan pada area konten agar teks tetap terbaca */
+    /* Area Konten Putih Bersih (Lebih Solid agar tidak nabrak) */
     .block-container {
-        background-color: rgba(255, 255, 255, 0.85);
-        padding: 2rem !important;
-        border-radius: 10px;
+        background-color: rgba(255, 255, 255, 0.95);
+        padding: 2rem 3rem !important;
+        border-radius: 12px;
         margin-top: 2rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     }
 
-    /* Tampilan Tab Navigasi Atas */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 24px;
-        background-color: #1b4332;
-        padding: 10px 20px;
-        border-radius: 8px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        color: #ffffff !important;
-        font-weight: 600;
-        font-size: 16px;
-        background-color: transparent;
-        border: none;
-    }
-    .stTabs [aria-selected="true"] {
-        color: #d4af37 !important;
-        border-bottom: 3px solid #d4af37 !important;
-    }
-
-    /* Kotak Dasbor Metrik */
+    /* Kotak Metrik */
     div[data-testid="metric-container"] {
-        background-color: #ffffff;
+        background-color: #f8f9fa;
         border-left: 5px solid #2d6a4f;
         padding: 15px;
         border-radius: 6px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -69,7 +54,6 @@ def query_database():
         conn = sqlite3.connect('database_lahan.db')
         df = pd.read_sql_query("SELECT * FROM titik_acuan", conn)
         conn.close()
-        # Proteksi ganda agar peta tidak crash jika masih ada baris kosong
         df = df.dropna(subset=['Latitude', 'Longitude'])
         return df
     except Exception:
@@ -94,47 +78,76 @@ def hitung_jarak_haversine(lat1, lon1, lat2, lon2):
 
 df_data = query_database()
 
-# --- 4. HEADER UTAMA WEB ---
-st.title("Sistem Spasial Prediksi Kesesuaian Lahan")
-st.markdown("Analisis komparatif agroklimat dan distribusi hara untuk budidaya komoditas kentang.")
-st.markdown("---")
-
-# --- 5. NAVIGASI UTAMA (TABS) ---
-tab1, tab2 = st.tabs(["Peta Kesesuaian Lahan", "Rekomendasi Pemupukan"])
+# --- 4. NAVIGASI MENU UTAMA (TABS) ---
+tab_home, tab_map, tab_pupuk = st.tabs(["🏠 Beranda Utama", "🗺️ Prediksi Kesesuaian Lahan", "🌱 Rekomendasi Pemupukan"])
 
 # ==========================================
-# TAB 1: PETA KESESUAIAN LAHAN
+# MENU 1: BERANDA
 # ==========================================
-with tab1:
+with tab_home:
+    st.title("Sistem Informasi Geografis Lahan Kentang")
+    st.subheader("Platform Analisis Spasial Distribusi Hara & Agroklimat")
+    st.markdown("---")
+    
+    col_img, col_text = st.columns([1, 1.5])
+    with col_img:
+        st.image("https://images.unsplash.com/photo-1595841696677-6489ff3f8cd1?q=80&w=600&auto=format&fit=crop", borderRadius=10)
+    with col_text:
+        st.markdown("""
+        ### Selamat Datang
+        Aplikasi ini dirancang untuk memetakan dan memprediksi kesesuaian lahan bagi budidaya komoditas kentang di berbagai sentra di Pulau Jawa.
+        
+        **Fitur Utama:**
+        1. **Prediksi Kesesuaian Lahan (Navigasi Tab 2):** Mengevaluasi titik lahan baru dengan membandingkan ketinggian (elevasi) dan data historis (`PH_S1` & Status) dari titik observasi terdekat.
+        2. **Rekomendasi Pemupukan (Navigasi Tab 3):** *[Sedang dalam pengembangan]* Modul kalkulasi dosis nutrisi lahan.
+        
+        Silakan klik *Tab* di atas untuk memulai analisis.
+        """)
+
+# ==========================================
+# MENU 2: PETA KESESUAIAN LAHAN
+# ==========================================
+with tab_map:
+    st.title("Pemetaan & Prediksi Lokasi")
+    st.markdown("Klik di area mana saja pada peta. Titik biru akan muncul, dan sistem akan mengalkulasi prediksi kecocokannya.")
+    st.markdown("---")
+
     col_kontrol, col_peta = st.columns([1, 3])
 
     with col_kontrol:
-        st.write("### Parameter Analisis")
-        radius_km = st.slider("Radius Analisis Wilayah (Km)", 1.0, 10.0, 3.0, 0.5)
+        st.write("### Parameter")
+        radius_km = st.slider("Radius Analisis (Km)", 1.0, 10.0, 3.0, 0.5)
         ph_manual = st.number_input("Input pH Lokal (Opsional)", 0.0, 14.0, 0.0, 0.1)
         
         st.markdown("---")
         if not df_data.empty:
-            st.caption(f"Status Sistem: {len(df_data)} titik observasi aktif.")
+            st.success(f"✅ Sistem Aktif: {len(df_data)} titik acuan terhubung.")
         else:
-            st.caption("Status Sistem: Koneksi data tidak aktif.")
+            st.error("❌ Database gagal dimuat.")
 
     with col_peta:
+        # Peta Dasar
         m = folium.Map(location=[-7.5, 110.0], zoom_start=7, tiles="CartoDB positron")
         
+        # 1. Menggambar Titik Acuan dari Database
         if not df_data.empty:
             for _, row in df_data.iterrows():
+                # Memastikan spasi terhapus saat membaca status
                 status_lahan = str(row.get('Status', '')).strip().lower()
                 
-                if status_lahan == 'cocok': warna_titik = '#2d6a4f'
-                elif status_lahan == 'netral': warna_titik = '#d4af37'
-                else: warna_titik = '#b7094c'
+                # Pewarnaan Kategori
+                if status_lahan == 'cocok': warna_titik = '#2d6a4f' # Hijau
+                elif status_lahan == 'netral': warna_titik = '#d4af37' # Emas/Kuning
+                else: warna_titik = '#b7094c' # Merah
 
+                # PERBAIKAN PH_S1
+                nilai_ph = row.get('PH_S1', 'N/A')
+                
                 popup_html = f"""
                 <div style='font-family: sans-serif; font-size: 12px;'>
-                    <b>Kategori Lahan:</b> {status_lahan.upper()}<br>
+                    <b>Kategori:</b> {status_lahan.upper()}<br>
                     <b>Elevasi:</b> {row.get('Elevasi', 'N/A')} mdpl<br>
-                    <b>Kondisi pH:</b> {row.get('pH', 'N/A')}
+                    <b>pH (S1):</b> {nilai_ph}
                 </div>
                 """
                 
@@ -143,12 +156,33 @@ with tab1:
                     radius=5, color=warna_titik, fill=True, fill_color=warna_titik, fill_opacity=0.8,
                     popup=folium.Popup(popup_html, max_width=200)
                 ).add_to(m)
+
+        # 2. Menggambar Titik Klik Pengguna (Warna Biru)
+        if st.session_state.clicked_lat is not None:
+            folium.Marker(
+                location=[st.session_state.clicked_lat, st.session_state.clicked_lon],
+                icon=folium.Icon(color='blue', icon='info-sign'),
+                popup="Lokasi Uji (Klik Anda)"
+            ).add_to(m)
         
+        # Render Peta
         map_data = st_folium(m, width=900, height=480, returned_objects=["last_clicked"])
 
+    # 3. Menangkap Klik Peta dan Memperbarui Titik Biru
     if map_data and map_data.get("last_clicked"):
         lat = map_data["last_clicked"]["lat"]
         lon = map_data["last_clicked"]["lng"]
+        
+        # Jika koordinat baru berbeda dengan memori, simpan dan muat ulang peta agar titik tergambar
+        if st.session_state.clicked_lat != lat or st.session_state.clicked_lon != lon:
+            st.session_state.clicked_lat = lat
+            st.session_state.clicked_lon = lon
+            st.rerun()
+
+    # --- PANEL HASIL PREDIKSI ---
+    if st.session_state.clicked_lat is not None:
+        lat = st.session_state.clicked_lat
+        lon = st.session_state.clicked_lon
         
         st.markdown("---")
         st.write("### Dasbor Hasil Analisis Titik")
@@ -157,7 +191,7 @@ with tab1:
             elevasi_uji = get_elevation(lat, lon)
             
             met1, met2, met3 = st.columns(3)
-            met1.metric("Koordinat Lokasi", f"{lat:.4f}, {lon:.4f}")
+            met1.metric("Koordinat Lokasi Uji", f"{lat:.4f}, {lon:.4f}")
             met2.metric("Ketinggian Tanah", f"{elevasi_uji:.1f} mdpl" if elevasi_uji else "N/A")
             
             status_final, alasan = "MEMPROSES...", ""
@@ -196,8 +230,8 @@ with tab1:
             else: st.info(f"**Informasi:** {alasan}")
 
 # ==========================================
-# TAB 2: REKOMENDASI PEMUPUKAN
+# MENU 3: REKOMENDASI PEMUPUKAN
 # ==========================================
-with tab2:
+with tab_pupuk:
     st.write("### Dasbor Optimasi Pemupukan")
     st.info("Modul kalkulasi nutrisi dan dosis rekomendasi pupuk sedang dipersiapkan untuk integrasi sistem.")
