@@ -74,7 +74,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. FUNGSI LOGIKA SPASIAL (FITUR 1)
+# 3. FUNGSI LOGIKA SPASIAL & FILTER DUPLIKAT
 # ==========================================
 @st.cache_data(ttl=600)
 def load_data_peta():
@@ -97,9 +97,18 @@ def load_data_peta():
         if 'Kecocokan' in df.columns: df.rename(columns={'Kecocokan': 'Status'}, inplace=True)
 
         if 'Lat' in df.columns and 'Lon' in df.columns:
+            # Memastikan format data adalah numerik
+            df['Lat'] = pd.to_numeric(df['Lat'], errors='coerce')
+            df['Lon'] = pd.to_numeric(df['Lon'], errors='coerce')
+            
+            # Forward fill untuk menangani merge cell
             df['Lat'] = df['Lat'].ffill()
             df['Lon'] = df['Lon'].ffill()
             df = df.dropna(subset=['Lat', 'Lon'])
+            
+            # Menghapus baris dengan koordinat duplikat agar titik riil akurat
+            df = df.drop_duplicates(subset=['Lat', 'Lon'], keep='first')
+            
     return df
 
 def get_elevation(lat, lon):
@@ -123,6 +132,9 @@ def hitung_jarak_haversine(lat1, lon1, lat2, lon2):
 # ==========================================
 def klasifikasi_hara(x):
     if pd.isna(x): return 'Tidak Diketahui'
+    try: x = float(x)
+    except: return 'Tidak Diketahui'
+    
     if x < 100: return 'Sangat Rendah'
     elif x < 200: return 'Rendah'
     elif x < 500: return 'Sedang'
@@ -193,7 +205,7 @@ elif st.session_state.page == 'fitur_peta':
         
         st.markdown("<br>", unsafe_allow_html=True)
         if not df_data.empty:
-            st.success(f"Data Berhasil Dimuat: {len(df_data)} Titik Observasi")
+            st.success(f"Data Berhasil Dimuat: {len(df_data)} Titik Unik Observasi")
         else:
             st.error("Data tidak terdeteksi di server.")
             
@@ -317,15 +329,12 @@ elif st.session_state.page == 'fitur_pupuk':
     st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 15px 0 25px 0;'>", unsafe_allow_html=True)
     
     try:
-        # Membaca data dengan delimiter titik koma (;) berdasarkan file CSV Anda
-        df_pengukuran = pd.read_csv('DataPengukuran1.csv', delimiter=';')
-        
-        # Membersihkan spasi pada nama kolom untuk menghindari error
+        # Membaca data langsung dari file Excel yang valid
+        df_pengukuran = pd.read_excel('DataPengukuran1.xlsx')
         df_pengukuran.columns = df_pengukuran.columns.str.strip()
         
         st.markdown("<h4>Pilih Sampel Data Tanah</h4>", unsafe_allow_html=True)
         
-        # Opsi Dropdown untuk memilih baris dari CSV
         opsi_sampel = [f"Sampel {i+1} (Elevasi: {row.get('Elevasi', 'N/A')} | pH: {row.get('pH', 'N/A')})" for i, row in df_pengukuran.iterrows()]
         pilihan_idx = st.selectbox("Silakan pilih data pengukuran yang telah diinput:", range(len(opsi_sampel)), format_func=lambda x: opsi_sampel[x])
         
@@ -334,7 +343,7 @@ elif st.session_state.page == 'fitur_pupuk':
         st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 25px 0;'>", unsafe_allow_html=True)
         st.markdown("<h4>Metrik Kandungan Hara</h4>", unsafe_allow_html=True)
         
-        # Mengambil nilai N, P, K dari file CSV (Sesuaikan dengan nama kolom asli jika hurufnya berbeda)
+        # Ekstraksi aman nilai NPK dari Excel
         n_val = data_terpilih.get('N', 0)
         p_val = data_terpilih.get('P', 0)
         k_val = data_terpilih.get('K', 0)
@@ -347,7 +356,7 @@ elif st.session_state.page == 'fitur_pupuk':
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("<h4>Analisis & Rekomendasi Tindakan</h4>", unsafe_allow_html=True)
         
-        # Menampilkan klasifikasi dan rekomendasi berdasarkan fungsi porting dari MATLAB
+        # Menerapkan logika porting dari fungsi MATLAB Anda
         for unsur, val in [('Nitrogen (N)', n_val), ('Fosfor (P)', p_val), ('Kalium (K)', k_val)]:
             kategori = klasifikasi_hara(val)
             st.info(f"**Status {unsur}: {kategori.upper()}**")
@@ -356,6 +365,6 @@ elif st.session_state.page == 'fitur_pupuk':
             st.markdown("<br>", unsafe_allow_html=True)
 
     except FileNotFoundError:
-        st.error("File 'DataPengukuran1.csv' tidak ditemukan. Pastikan file tersebut sudah diunggah ke GitHub di folder yang sama dengan app.py.")
+        st.error("File 'DataPengukuran1.xlsx' tidak ditemukan. Pastikan file tersebut sudah diunggah (Commit) ke GitHub dengan nama yang persis sama.")
     except Exception as e:
         st.error(f"Terjadi kesalahan saat membaca data: {e}")
