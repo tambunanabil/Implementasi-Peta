@@ -40,8 +40,9 @@ st.markdown("""
         max-width: 1140px !important;
         margin-left: auto !important;
         margin-right: auto !important;
-        margin-top: 5vh !important;
-        margin-bottom: 5vh !important;
+        /* PERBAIKAN: Mendorong panel lebih ke bawah agar persis di tengah layar */
+        margin-top: 15vh !important; 
+        margin-bottom: 10vh !important;
         box-shadow: 0 15px 35px rgba(0,0,0,0.4);
     }
 
@@ -185,7 +186,7 @@ elif st.session_state.page == 'fitur_peta':
             for _, row in df_data.iterrows():
                 kategori = str(row.get('Status', '')).strip().lower()
                 
-                # REVISI PALET WARNA BARU (RAMAH BUTA WARNA / COLORBLIND FRIENDLY)
+                # PALET WARNA BARU (RAMAH BUTA WARNA / COLORBLIND FRIENDLY)
                 if kategori == 'cocok': 
                     warna = '#0072B2'       # Biru Cerah Kontras Tinggi
                 elif kategori == 'netral': 
@@ -198,7 +199,7 @@ elif st.session_state.page == 'fitur_peta':
                 desa = row.get('Desa', 'N/A')
                 kabupaten = row.get('Kabupaten', 'N/A')
                 
-                # REVISI POP-UP: Menambahkan informasi Wilayah Desa dan Kabupaten
+                # POP-UP: Menambahkan informasi Wilayah Desa dan Kabupaten
                 popup_text = f"""
                 <div style='color: black; font-family: sans-serif; font-size: 12px; line-height: 1.5; min-width: 150px;'>
                     <b style='font-size: 13px; color: {warna};'>{kategori.upper()}</b><br>
