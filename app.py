@@ -6,7 +6,9 @@ import requests
 import numpy as np
 import sqlite3
 
-# --- 1. PENGATURAN HALAMAN DASAR ---
+# ==========================================
+# 1. PENGATURAN HALAMAN DASAR & SESSION STATE
+# ==========================================
 st.set_page_config(page_title="AgriGIS | Lahan Kentang", layout="wide", initial_sidebar_state="collapsed")
 
 if 'page' not in st.session_state:
@@ -15,7 +17,9 @@ if 'clicked_lat' not in st.session_state:
     st.session_state.clicked_lat = None
     st.session_state.clicked_lon = None
 
-# --- 2. CSS: GLASSMORPHISM TOTAL SIMETRIS & SEIMBANG DI TENGAH ---
+# ==========================================
+# 2. CSS: GLASSMORPHISM & TATA LETAK TERPUSAT
+# ==========================================
 st.markdown("""
     <style>
     /* Sembunyikan elemen bawaan Streamlit */
@@ -29,7 +33,7 @@ st.markdown("""
         background-position: center;
     }
 
-    /* WADAH UTAMA: Posisi panel kaca buram benar-benar berada di tengah (Center-Aligned) */
+    /* WADAH UTAMA: Panel kaca buram yang simetris di tengah */
     .block-container {
         background-color: rgba(20, 32, 20, 0.65) !important;
         backdrop-filter: blur(12px);
@@ -40,26 +44,19 @@ st.markdown("""
         max-width: 1140px !important;
         margin-left: auto !important;
         margin-right: auto !important;
-        /* PERBAIKAN: Mendorong panel lebih ke bawah agar persis di tengah layar */
-        margin-top: 15vh !important; 
+        margin-top: 10vh !important; 
         margin-bottom: 10vh !important;
         box-shadow: 0 15px 35px rgba(0,0,0,0.4);
     }
 
-    /* Memastikan semua komponen teks bawaan menjadi putih cerah */
+    /* Warna Teks agar kontras dengan latar gelap */
     .stMarkdown, .stText, label, .stMarkdown p, h1, h2, h3, h4, h5, h6 {
         color: #ffffff !important;
     }
+    [data-testid="stMetricValue"] { color: #ffffff !important; }
+    [data-testid="stMetricLabel"] { color: #cccccc !important; }
 
-    /* Menghapus warna teks hitam pada metric bawaan Streamlit */
-    [data-testid="stMetricValue"] {
-        color: #ffffff !important;
-    }
-    [data-testid="stMetricLabel"] {
-        color: #cccccc !important;
-    }
-
-    /* Mempercantik Tombol Sesuai Karakter Web */
+    /* Desain Tombol */
     .stButton>button {
         background-color: rgba(45, 106, 79, 0.95);
         color: white !important;
@@ -76,9 +73,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. FUNGSI DATA ANTI-ERROR SPASIAL ---
+# ==========================================
+# 3. FUNGSI LOGIKA SPASIAL (FITUR 1)
+# ==========================================
 @st.cache_data(ttl=600)
-def load_data():
+def load_data_peta():
     try:
         conn = sqlite3.connect('database_lahan.db')
         df = pd.read_sql_query("SELECT * FROM titik_acuan", conn)
@@ -90,22 +89,17 @@ def load_data():
             return pd.DataFrame()
             
     if not df.empty:
-        # Normalisasi penamaan kolom agar fleksibel terhadap perubahan file
         df.columns = df.columns.str.strip()
-        
         if 'Latitude' in df.columns: df.rename(columns={'Latitude': 'Lat'}, inplace=True)
         elif 'lat' in df.columns: df.rename(columns={'lat': 'Lat'}, inplace=True)
-        
         if 'Longitude' in df.columns: df.rename(columns={'Longitude': 'Lon'}, inplace=True)
         elif 'lon' in df.columns: df.rename(columns={'lon': 'Lon'}, inplace=True)
-        
         if 'Kecocokan' in df.columns: df.rename(columns={'Kecocokan': 'Status'}, inplace=True)
 
         if 'Lat' in df.columns and 'Lon' in df.columns:
             df['Lat'] = df['Lat'].ffill()
             df['Lon'] = df['Lon'].ffill()
             df = df.dropna(subset=['Lat', 'Lon'])
-            
     return df
 
 def get_elevation(lat, lon):
@@ -124,10 +118,39 @@ def hitung_jarak_haversine(lat1, lon1, lat2, lon2):
     c = 2 * np.arcsin(np.sqrt(a))
     return R * c
 
-df_data = load_data()
+# ==========================================
+# 4. FUNGSI LOGIKA PEMUPUKAN (PORTING DARI MATLAB)
+# ==========================================
+def klasifikasi_hara(x):
+    if pd.isna(x): return 'Tidak Diketahui'
+    if x < 100: return 'Sangat Rendah'
+    elif x < 200: return 'Rendah'
+    elif x < 500: return 'Sedang'
+    elif x < 750: return 'Tinggi'
+    else: return 'Sangat Tinggi'
+
+def saran_hara(kat):
+    kat = str(kat).lower()
+    if kat == "sangat rendah": return 'Hara sangat rendah. Pemupukan wajib dilakukan sejak awal tanam.'
+    elif kat == "rendah": return 'Hara rendah. Perlu penambahan pupuk dasar dan susulan.'
+    elif kat == "sedang": return 'Hara cukup. Lakukan pemupukan pemeliharaan ringan.'
+    elif kat == "tinggi": return 'Hara tinggi. Kurangi pupuk kimia, fokus pemeliharaan tanah.'
+    elif kat == "sangat tinggi": return 'Hara sangat tinggi. Hentikan pupuk kimia sementara.'
+    return 'Kategori hara belum dikenali atau data tidak lengkap.'
+
+def langkah_pupuk(kat):
+    kat = str(kat).lower()
+    if kat == "sangat rendah": return 'Tambahkan pupuk NPK lengkap dan pupuk organik matang.'
+    elif kat == "rendah": return 'Lakukan pemupukan dasar saat tanam dan susulan 1-2 kali.'
+    elif kat == "sedang": return 'Pemupukan pemeliharaan ringan. Jaga kesehatan tanah.'
+    elif kat == "tinggi": return 'Hentikan pupuk kimia sementara. Gunakan pupuk organik ringan.'
+    elif kat == "sangat tinggi": return 'Stop pupuk kimia. Fokus perbaikan struktur tanah.'
+    return 'Lakukan pengamatan rutin.'
+
+df_data = load_data_peta()
 
 # ==========================================
-# HALAMAN 1: BERANDA UTAMA (GLASSMORPHISM)
+# HALAMAN 0: BERANDA UTAMA 
 # ==========================================
 if st.session_state.page == 'beranda':
     st.markdown("<br><br>", unsafe_allow_html=True)
@@ -147,7 +170,7 @@ if st.session_state.page == 'beranda':
     st.markdown("<br><br>", unsafe_allow_html=True)
 
 # ==========================================
-# HALAMAN 2: PETA KESESUAIAN
+# HALAMAN 1: PETA KESESUAIAN (FITUR 1)
 # ==========================================
 elif st.session_state.page == 'fitur_peta':
     
@@ -186,20 +209,16 @@ elif st.session_state.page == 'fitur_peta':
             for _, row in df_data.iterrows():
                 kategori = str(row.get('Status', '')).strip().lower()
                 
-                # PALET WARNA BARU (RAMAH BUTA WARNA / COLORBLIND FRIENDLY)
-                if kategori == 'cocok': 
-                    warna = '#0072B2'       # Biru Cerah Kontras Tinggi
-                elif kategori == 'netral': 
-                    warna = '#E69F00'       # Oranye/Jingga Semburat Kuning
-                else: 
-                    warna = '#D55E00'       # Merah Bata / Cokelat Kemerahan
+                # PALET WARNA RAMAH BUTA WARNA
+                if kategori == 'cocok': warna = '#0072B2'
+                elif kategori == 'netral': warna = '#E69F00'
+                else: warna = '#D55E00'
 
                 ph_tanah = row.get('PH_S1', 'N/A')
                 elev = row.get('Elevasi', 'N/A')
                 desa = row.get('Desa', 'N/A')
                 kabupaten = row.get('Kabupaten', 'N/A')
                 
-                # POP-UP: Menambahkan informasi Wilayah Desa dan Kabupaten
                 popup_text = f"""
                 <div style='color: black; font-family: sans-serif; font-size: 12px; line-height: 1.5; min-width: 150px;'>
                     <b style='font-size: 13px; color: {warna};'>{kategori.upper()}</b><br>
@@ -213,12 +232,7 @@ elif st.session_state.page == 'fitur_peta':
                 
                 folium.CircleMarker(
                     location=[row['Lat'], row['Lon']],
-                    radius=6, 
-                    color='white', 
-                    weight=1.5, 
-                    fill=True, 
-                    fill_color=warna, 
-                    fill_opacity=1.0,
+                    radius=6, color='white', weight=1.5, fill=True, fill_color=warna, fill_opacity=1.0,
                     popup=folium.Popup(popup_text, max_width=250)
                 ).add_to(m)
 
@@ -239,10 +253,8 @@ elif st.session_state.page == 'fitur_peta':
             st.session_state.clicked_lon = lon_klik
             st.rerun()
 
-    # --- PANEL HASIL PREDIKSI & DATA REFERENSI ---
     if st.session_state.clicked_lat is not None:
         st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 30px 0 20px 0;'>", unsafe_allow_html=True)
-        
         lat_eval = st.session_state.clicked_lat
         lon_eval = st.session_state.clicked_lon
         
@@ -252,7 +264,6 @@ elif st.session_state.page == 'fitur_peta':
             if not df_data.empty and elevasi_satelit is not None:
                 df_working = df_data.copy()
                 df_working['Jarak_Km'] = df_working.apply(lambda r: hitung_jarak_haversine(lat_eval, lon_eval, r['Lat'], r['Lon']), axis=1)
-                
                 df_terfilter = df_working[df_working['Jarak_Km'] <= radius_km].copy()
                 
                 st.markdown("<h4>Hasil Evaluasi Lokasi</h4>", unsafe_allow_html=True)
@@ -284,28 +295,67 @@ elif st.session_state.page == 'fitur_peta':
                     
                     df_tabel = df_terfilter[['Kabupaten', 'Desa', 'Elevasi', 'PH_S1', 'Status', 'Jarak_Km']].copy()
                     df_tabel['Jarak_Km'] = df_tabel['Jarak_Km'].round(2)
-                    df_tabel.rename(columns={
-                        'Elevasi': 'Ketinggian (mdpl)',
-                        'PH_S1': 'pH Tanah',
-                        'Status': 'Kategori Lahan',
-                        'Jarak_Km': 'Jarak ke Lokasi Uji (Km)'
-                    }, inplace=True)
+                    df_tabel.rename(columns={'Elevasi': 'Ketinggian (mdpl)', 'PH_S1': 'pH Tanah', 'Status': 'Kategori Lahan', 'Jarak_Km': 'Jarak ke Lokasi Uji (Km)'}, inplace=True)
                     
                     st.dataframe(df_tabel, use_container_width=True, hide_index=True)
             else:
                 st.error("Gagal terhubung dengan server koordinat satelit untuk menarik data elevasi.")
 
 # ==========================================
-# HALAMAN 3: REKOMENDASI PEMUPUKAN
+# HALAMAN 2: REKOMENDASI PEMUPUKAN (FITUR 2)
 # ==========================================
 elif st.session_state.page == 'fitur_pupuk':
+    
     col_judul, col_kembali = st.columns([4, 1])
     with col_judul:
-        st.markdown("<h2 style='margin:0;'>Rekomendasi Pemupukan</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='margin:0; font-weight: 700;'>Dasbor Rekomendasi Pemupukan</h2>", unsafe_allow_html=True)
     with col_kembali:
         if st.button("Kembali ke Beranda", use_container_width=True):
             st.session_state.page = 'beranda'
             st.rerun()
             
     st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 15px 0 25px 0;'>", unsafe_allow_html=True)
-    st.info("Modul kalkulasi matematis untuk dosis nutrisi tanah sedang dalam tahap integrasi.")
+    
+    try:
+        # Membaca data dengan delimiter titik koma (;) berdasarkan file CSV Anda
+        df_pengukuran = pd.read_csv('DataPengukuran1.csv', delimiter=';')
+        
+        # Membersihkan spasi pada nama kolom untuk menghindari error
+        df_pengukuran.columns = df_pengukuran.columns.str.strip()
+        
+        st.markdown("<h4>Pilih Sampel Data Tanah</h4>", unsafe_allow_html=True)
+        
+        # Opsi Dropdown untuk memilih baris dari CSV
+        opsi_sampel = [f"Sampel {i+1} (Elevasi: {row.get('Elevasi', 'N/A')} | pH: {row.get('pH', 'N/A')})" for i, row in df_pengukuran.iterrows()]
+        pilihan_idx = st.selectbox("Silakan pilih data pengukuran yang telah diinput:", range(len(opsi_sampel)), format_func=lambda x: opsi_sampel[x])
+        
+        data_terpilih = df_pengukuran.iloc[pilihan_idx]
+        
+        st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 25px 0;'>", unsafe_allow_html=True)
+        st.markdown("<h4>Metrik Kandungan Hara</h4>", unsafe_allow_html=True)
+        
+        # Mengambil nilai N, P, K dari file CSV (Sesuaikan dengan nama kolom asli jika hurufnya berbeda)
+        n_val = data_terpilih.get('N', 0)
+        p_val = data_terpilih.get('P', 0)
+        k_val = data_terpilih.get('K', 0)
+        
+        col_n, col_p, col_k = st.columns(3)
+        col_n.metric("Nitrogen (N)", f"{n_val} mg/100g")
+        col_p.metric("Fosfor (P)", f"{p_val} mg/100g")
+        col_k.metric("Kalium (K)", f"{k_val} mg/100g")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<h4>Analisis & Rekomendasi Tindakan</h4>", unsafe_allow_html=True)
+        
+        # Menampilkan klasifikasi dan rekomendasi berdasarkan fungsi porting dari MATLAB
+        for unsur, val in [('Nitrogen (N)', n_val), ('Fosfor (P)', p_val), ('Kalium (K)', k_val)]:
+            kategori = klasifikasi_hara(val)
+            st.info(f"**Status {unsur}: {kategori.upper()}**")
+            st.write(f"💡 **Saran:** {saran_hara(kategori)}")
+            st.write(f"🛠️ **Langkah Praktis:** {langkah_pupuk(kategori)}")
+            st.markdown("<br>", unsafe_allow_html=True)
+
+    except FileNotFoundError:
+        st.error("File 'DataPengukuran1.csv' tidak ditemukan. Pastikan file tersebut sudah diunggah ke GitHub di folder yang sama dengan app.py.")
+    except Exception as e:
+        st.error(f"Terjadi kesalahan saat membaca data: {e}")
