@@ -23,12 +23,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- 2. FUNGSI SISTEM ---
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=600)
 def query_database():
     try:
         conn = sqlite3.connect('database_lahan.db')
         df = pd.read_sql_query("SELECT * FROM titik_acuan", conn)
         conn.close()
+        # Baris dropna telah dihapus karena database sudah diperbaiki dari akarnya
         return df
     except Exception:
         return pd.DataFrame()
