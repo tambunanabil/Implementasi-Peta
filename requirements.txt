@@ -5,6 +5,6 @@ streamlit-folium
 requests
 numpy
 openpyxl
-tensorflow
+tensorflow-cpu
 scikit-learn
 joblib
