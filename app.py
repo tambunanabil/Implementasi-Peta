@@ -181,7 +181,6 @@ if st.session_state.page == 'beranda':
     st.markdown("<p style='text-align: center; font-size: 18px; color: #e2e2e2;'>Platform Prediksi Kesesuaian Lahan Berbasis Agroklimat & Sebaran Hara</p>", unsafe_allow_html=True)
     st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 40px 0;'>", unsafe_allow_html=True)
     
-    # PERBAIKAN: Menambahkan kolom kosong (spacer) di kiri dan kanan agar tombol simetris di tengah
     col_kiri, col_btn1, col_btn2, col_kanan = st.columns([1, 1.5, 1.5, 1])
     
     with col_btn1:
@@ -235,7 +234,6 @@ elif st.session_state.page == 'fitur_peta':
             for _, row in df_data.iterrows():
                 kategori = str(row.get('Status', '')).strip().lower()
                 
-                # PALET WARNA RAMAH BUTA WARNA
                 if kategori == 'cocok': warna = '#0072B2'
                 elif kategori == 'netral': warna = '#E69F00'
                 else: warna = '#D55E00'
@@ -351,7 +349,6 @@ elif st.session_state.page == 'fitur_pupuk':
         st.markdown("<h4>Input Parameter Sensor Lapangan</h4>", unsafe_allow_html=True)
         st.write("Silakan masukkan hasil pengukuran dari 7 parameter sensor tanah di bawah ini:")
         
-        # Form Input Manual Tanpa Ketergantungan Excel Lagi
         with st.form("form_prediksi_manual"):
             c1, c2, c3 = st.columns(3)
             ec = c1.number_input("EC (Kelistrikan Tanah)", value=0.0, step=0.1)
@@ -364,34 +361,25 @@ elif st.session_state.page == 'fitur_pupuk':
             
             temp = c1.number_input("Suhu Dalam Tanah (°C)", value=20.0, step=0.1)
             
-            # PERBAIKAN TULISAN TOMBOL
             submit_button = st.form_submit_button("Lakukan Model Kalibrasi")
             
-        # Eksekusi Prediksi saat Tombol ditekan
         if submit_button:
-            # PERBAIKAN TULISAN LOADING
             with st.spinner("Memproses Model Kalibrasi..."):
-                # Susunan array sesuai urutan training Colab: EC_S, N_S, P_S, K_S, PH_S, Moist_S, Temp_D_S
                 input_array = np.array([[ec, n_s, p_s, k_s, ph, moist, temp]])
                 
-                # Preprocessing log1p dan Robust Scaler murni
                 X_log = np.log1p(input_array)
                 X_scaled = scaler_X.transform(X_log)
                 
-                # Menjalankan Artificial Neural Network (ANN)
                 y_pred_scaled = model.predict(X_scaled)
                 
-                # Mengembalikan nilai log ke nilai asli hara laboratorium (mg/100g)
                 y_pred_log = scaler_y.inverse_transform(y_pred_scaled)
                 y_pred = np.expm1(y_pred_log)[0]
                 
-                # Mengambil nilai mentahnya (Float)
                 raw_n, raw_p, raw_k = y_pred[0], y_pred[1], y_pred[2]
                 
                 st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 25px 0;'>", unsafe_allow_html=True)
                 st.markdown("<h4>Hasil Estimasi Kandungan Hara Laboratorium Kontinu</h4>", unsafe_allow_html=True)
                 
-                # PERBAIKAN: Menampilkan angka persis 2 digit di belakang koma dengan format f-string
                 col_n, col_p, col_k = st.columns(3)
                 col_n.metric("Estimasi N (Nitrogen)", f"{raw_n:.2f} mg/100g")
                 col_p.metric("Estimasi P (Fosfor)", f"{raw_p:.2f} mg/100g")
@@ -400,10 +388,9 @@ elif st.session_state.page == 'fitur_pupuk':
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("<h4>Analisis & Rekomendasi Pemupukan Kentang</h4>", unsafe_allow_html=True)
                 
-                # Menampilkan rincian rekomendasi tindakan
                 for unsur, raw_val in [('Nitrogen (N)', raw_n), ('Fosfor (P)', raw_p), ('Kalium (K)', raw_k)]:
                     kategori = klasifikasi_hara(raw_val)
                     st.info(f"**Status Kandungan {unsur}: {kategori.upper()}**")
-                    st.write(f"💡 **Saran Sistem:** {saran_hara(kategori)}")
-                    st.write(f"🛠️ **Langkah Tindakan:** {langkah_pupuk(kategori)}")
+                    st.write(f"**Saran Sistem:** {saran_hara(kategori)}")
+                    st.write(f"**Langkah Tindakan:** {langkah_pupuk(kategori)}")
                     st.markdown("<br>", unsafe_allow_html=True)
