@@ -150,28 +150,58 @@ def load_ann_model():
     except:
         return None, None, None
 
-def klasifikasi_hara(x):
-    if x < 100: return 'Sangat Rendah'
-    elif x < 200: return 'Rendah'
-    elif x < 500: return 'Sedang'
-    elif x < 750: return 'Tinggi'
+# --- FUNGSI KLASIFIKASI STANDAR BALITTANAH ---
+def klasifikasi_n(val):
+    if val < 1000: return 'Sangat Rendah'
+    elif val <= 2000: return 'Rendah'
+    elif val <= 5000: return 'Sedang'
+    elif val <= 7500: return 'Tinggi'
     else: return 'Sangat Tinggi'
 
-def saran_hara(kat):
-    kat = kat.lower()
-    if kat == "sangat rendah": return 'Hara sangat rendah. Pemupukan wajib dilakukan sejak awal tanam.'
-    elif kat == "rendah": return 'Hara rendah. Perlu penambahan pupuk dasar dan susulan.'
-    elif kat == "sedang": return 'Hara cukup. Lakukan pemupukan pemeliharaan ringan.'
-    elif kat == "tinggi": return 'Hara tinggi. Kurangi pupuk kimia, fokus pemeliharaan tanah.'
-    else: return 'Hara sangat tinggi. Hentikan pupuk kimia sementara.'
+def klasifikasi_p(val):
+    if val < 15: return 'Sangat Rendah'
+    elif val <= 20: return 'Rendah'
+    elif val <= 40: return 'Sedang'
+    elif val <= 60: return 'Tinggi'
+    else: return 'Sangat Tinggi'
 
-def langkah_pupuk(kat):
-    kat = kat.lower()
-    if kat == "sangat rendah": return 'Tambahkan pupuk NPK lengkap dan pupuk organik matang.'
-    elif kat == "rendah": return 'Lakukan pemupukan dasar saat tanam dan susulan 1-2 kali.'
-    elif kat == "sedang": return 'Pemupukan pemeliharaan ringan. Jaga kesehatan tanah.'
-    elif kat == "tinggi": return 'Hentikan pupuk kimia sementara. Gunakan pupuk organik ringan.'
-    else: return 'Stop pupuk kimia. Fokus perbaikan struktur tanah.'
+def klasifikasi_k(val):
+    if val < 10: return 'Sangat Rendah'
+    elif val <= 20: return 'Rendah'
+    elif val <= 40: return 'Sedang'
+    elif val <= 60: return 'Tinggi'
+    else: return 'Sangat Tinggi'
+
+# --- FUNGSI REKOMENDASI SPESIFIK KENTANG ---
+def saran_n(kat):
+    if kat in ['Sangat Rendah', 'Rendah']: return 'Fase vegetatif terancam. Tanaman kentang akan kerdil.'
+    elif kat == 'Sedang': return 'Kebutuhan N tercukupi untuk pertumbuhan daun.'
+    else: return 'Kelebihan N. Tanaman akan terlalu rimbun daun namun pembentukan umbi terhambat.'
+
+def langkah_n(kat):
+    if kat in ['Sangat Rendah', 'Rendah']: return 'Berikan pupuk Urea/ZA dosis penuh pada fase awal tanam.'
+    elif kat == 'Sedang': return 'Lakukan pemupukan N standar sesuai rekomendasi lokal.'
+    else: return 'Kurangi dosis pupuk N. Fokuskan nutrisi untuk pembesaran umbi kentang.'
+
+def saran_p(kat):
+    if kat in ['Sangat Rendah', 'Rendah']: return 'Perakaran dan inisiasi umbi kentang akan sangat terhambat.'
+    elif kat == 'Sedang': return 'Status P cukup, namun kentang butuh P tinggi untuk umbi.'
+    else: return 'Kandungan Fosfor melimpah di dalam tanah.'
+
+def langkah_p(kat):
+    if kat in ['Sangat Rendah', 'Rendah']: return 'Wajib aplikasikan pupuk dasar SP-36/TSP dosis tinggi sebelum tanam.'
+    elif kat == 'Sedang': return 'Tambahkan pupuk P dosis sedang untuk memaksimalkan jumlah umbi.'
+    else: return 'Gunakan pupuk hayati (mikroba pelarut fosfat) untuk mencairkan P yang terikat di tanah.'
+
+def saran_k(kat):
+    if kat in ['Sangat Rendah', 'Rendah']: return 'Sangat kritis! Pembesaran umbi kentang akan gagal/kualitas rendah.'
+    elif kat == 'Sedang': return 'Kentang adalah tanaman rakus Kalium. Status Sedang masih perlu tambahan.'
+    else: return 'Ketersediaan Kalium optimal untuk sintesis pati dan pembesaran umbi.'
+
+def langkah_k(kat):
+    if kat in ['Sangat Rendah', 'Rendah']: return 'Segera aplikasikan pupuk KCl/ZK dosis tinggi pada fase pembentukan umbi.'
+    elif kat == 'Sedang': return 'Berikan pupuk Kalium susulan pada fase pengisian umbi.'
+    else: return 'Pemupukan Kalium kimia dapat dikurangi. Lakukan pemeliharaan standar.'
 
 df_data = load_data_peta()
 
@@ -399,10 +429,23 @@ elif st.session_state.page == 'fitur_pupuk':
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("<h4>Analisis & Rekomendasi Pemupukan Kentang</h4>", unsafe_allow_html=True)
                 
-                # Menampilkan rincian klasifikasi pakar (formal tanpa emoji)
-                for unsur, raw_val in [('Nitrogen (N)', raw_n), ('Fosfor (P)', raw_p), ('Kalium (K)', raw_k)]:
-                    kategori = klasifikasi_hara(raw_val)
-                    st.info(f"Status Kandungan {unsur}: {kategori.upper()}")
-                    st.write(f"Saran Sistem: {saran_hara(kategori)}")
-                    st.write(f"Langkah Tindakan: {langkah_pupuk(kategori)}")
-                    st.markdown("<br>", unsafe_allow_html=True)
+                # 1. Tampilan Nitrogen
+                kat_n = klasifikasi_n(raw_n)
+                st.info(f"Status Kandungan Nitrogen (N): {kat_n.upper()}")
+                st.write(f"Saran Sistem: {saran_n(kat_n)}")
+                st.write(f"Langkah Tindakan: {langkah_n(kat_n)}")
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # 2. Tampilan Fosfor
+                kat_p = klasifikasi_p(raw_p)
+                st.info(f"Status Kandungan Fosfor (P): {kat_p.upper()}")
+                st.write(f"Saran Sistem: {saran_p(kat_p)}")
+                st.write(f"Langkah Tindakan: {langkah_p(kat_p)}")
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # 3. Tampilan Kalium
+                kat_k = klasifikasi_k(raw_k)
+                st.info(f"Status Kandungan Kalium (K): {kat_k.upper()}")
+                st.write(f"Saran Sistem: {saran_k(kat_k)}")
+                st.write(f"Langkah Tindakan: {langkah_k(kat_k)}")
+                st.markdown("<br>", unsafe_allow_html=True)
