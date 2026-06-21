@@ -7,7 +7,9 @@ import numpy as np
 import sqlite3
 import joblib
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+# Menyembunyikan log TensorFlow yang tidak perlu di terminal
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
 # Memastikan pustaka TensorFlow terpasang di sistem
 try:
@@ -25,6 +27,7 @@ if 'page' not in st.session_state:
     st.session_state.page = 'beranda'
 if 'clicked_lat' not in st.session_state:
     st.session_state.clicked_lat = None
+if 'clicked_lon' not in st.session_state:
     st.session_state.clicked_lon = None
 
 # ==========================================
@@ -66,7 +69,7 @@ st.markdown("""
     [data-testid="stMetricValue"] { color: #ffffff !important; }
     [data-testid="stMetricLabel"] { color: #cccccc !important; }
 
-    /* Desain Tombol */
+    /* Desain Tombol Navigasi dan Form */
     .stButton>button {
         background-color: rgba(45, 106, 79, 0.95);
         color: white !important;
@@ -299,20 +302,20 @@ elif st.session_state.page == 'fitur_peta':
                     elev_min, elev_max = df_terfilter['Elevasi'].min(), df_terfilter['Elevasi'].max()
                     
                     if elevasi_satelit < (elev_min - 50.0) or elevasi_satelit > (elev_max + 50.0):
-                        st.error(f"🟥 **TIDAK COCOK:** Ketinggian lokasi berada di luar batas toleransi wilayah terdekat (Rentang Ketinggian Acuan: {elev_min:.0f} - {elev_max:.0f} mdpl).")
+                        st.error(f"TIDAK COCOK: Ketinggian lokasi berada di luar batas toleransi wilayah terdekat (Rentang Ketinggian Acuan: {elev_min:.0f} - {elev_max:.0f} mdpl).")
                     else:
                         hitung_suara = df_terfilter['Status'].str.lower().value_counts()
                         
                         if len(hitung_suara) > 1 and hitung_suara.iloc[0] == hitung_suara.iloc[1]:
-                            st.warning("🟨 **NETRAL:** Karakteristik data referensi di sekitar titik uji memiliki rasio yang seimbang (50:50).")
+                            st.warning("NETRAL: Karakteristik data referensi di sekitar titik uji memiliki rasio yang seimbang (50:50).")
                         else:
                             suara_dominan = hitung_suara.idxmax()
                             if suara_dominan == 'cocok':
-                                st.success("🟩 **COCOK:** Mayoritas objek data observasi di sekitar lokasi ini menunjukkan kondisi lahan yang ideal.")
+                                st.success("COCOK: Mayoritas objek data observasi di sekitar lokasi ini menunjukkan kondisi lahan yang ideal.")
                             elif suara_dominan == 'netral':
-                                st.warning("🟨 **NETRAL:** Zonasi di sekitar lokasi didominasi oleh karakteristik lahan marginal.")
+                                st.warning("NETRAL: Zonasi di sekitar lokasi didominasi oleh karakteristik lahan marginal.")
                             else:
-                                st.error("🟥 **TIDAK COCOK:** Mayoritas objek data observasi historis tidak merekomendasikan komoditas ini.")
+                                st.error("TIDAK COCOK: Mayoritas objek data observasi historis tidak merekomendasikan komoditas ini.")
                     
                     st.markdown("<br>", unsafe_allow_html=True)
                     st.markdown(f"<h5>Data Ketinggian & pH dari Objek Acuan Terdekat (Radius {radius_km} Km)</h5>", unsafe_allow_html=True)
@@ -326,7 +329,7 @@ elif st.session_state.page == 'fitur_peta':
                 st.error("Gagal terhubung dengan server koordinat satelit untuk menarik data elevasi.")
 
 # ==========================================
-# HALAMAN 2: REKOMENDASI PEMUPUKAN (FITUR 2 MURNI INPUT MANUAL)
+# HALAMAN 2: REKOMENDASI PEMUPUKAN (FITUR 2)
 # ==========================================
 elif st.session_state.page == 'fitur_pupuk':
     
@@ -340,11 +343,10 @@ elif st.session_state.page == 'fitur_pupuk':
             
     st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 15px 0 25px 0;'>", unsafe_allow_html=True)
     
-    # Memeriksa Model Masuk
     model, scaler_X, scaler_y = load_ann_model()
     
     if model is None:
-        st.warning("⚠️ File model belum terbaca dengan sempurna. Pastikan `model_ann.keras`, `scaler_X.pkl`, dan `scaler_y.pkl` sudah di-upload ke folder yang sama di GitHub Anda.")
+        st.warning("File model belum terbaca dengan sempurna. Pastikan model_ann.keras, scaler_X.pkl, dan scaler_y.pkl sudah berada di folder proyek VS Code Anda.")
     else:
         st.markdown("<h4>Input Parameter Sensor Lapangan</h4>", unsafe_allow_html=True)
         st.write("Silakan masukkan hasil pengukuran dari 7 parameter sensor tanah di bawah ini:")
@@ -365,21 +367,30 @@ elif st.session_state.page == 'fitur_pupuk':
             
         if submit_button:
             with st.spinner("Memproses Model Kalibrasi..."):
-                input_array = np.array([[ec, n_s, p_s, k_s, ph, moist, temp]])
+                # Menyelaraskan tipe data murni float32 (persis seperti sistem TensorFlow di Colab)
+                input_df = pd.DataFrame(
+                    [[ec, n_s, p_s, k_s, ph, moist, temp]],
+                    columns=["EC_S", "N_S", "P_S", "K_S", "PH_S", "Moist_S", "Temp_D_S"]
+                ).astype('float32')
                 
-                X_log = np.log1p(input_array)
+                # Menjalankan prapemrosesan log1p dan RobustScaler asli
+                X_log = np.log1p(input_df)
                 X_scaled = scaler_X.transform(X_log)
                 
+                # Membaca matriks keluaran berdimensi 3 output saja (N, P, K)
                 y_pred_scaled = model.predict(X_scaled)
                 
+                # Melakukan inverse transform dan inverse log
                 y_pred_log = scaler_y.inverse_transform(y_pred_scaled)
                 y_pred = np.expm1(y_pred_log)[0]
                 
+                # Menyimpan nilai continu asli hara laboratorium (mg/100g)
                 raw_n, raw_p, raw_k = y_pred[0], y_pred[1], y_pred[2]
                 
                 st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 25px 0;'>", unsafe_allow_html=True)
                 st.markdown("<h4>Hasil Estimasi Kandungan Hara Laboratorium Kontinu</h4>", unsafe_allow_html=True)
                 
+                # Menampilkan output dengan presisi seragam 2 angka desimal
                 col_n, col_p, col_k = st.columns(3)
                 col_n.metric("Estimasi N (Nitrogen)", f"{raw_n:.2f} mg/100g")
                 col_p.metric("Estimasi P (Fosfor)", f"{raw_p:.2f} mg/100g")
@@ -388,9 +399,10 @@ elif st.session_state.page == 'fitur_pupuk':
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("<h4>Analisis & Rekomendasi Pemupukan Kentang</h4>", unsafe_allow_html=True)
                 
+                # Menampilkan rincian klasifikasi pakar (formal tanpa emoji)
                 for unsur, raw_val in [('Nitrogen (N)', raw_n), ('Fosfor (P)', raw_p), ('Kalium (K)', raw_k)]:
                     kategori = klasifikasi_hara(raw_val)
-                    st.info(f"**Status Kandungan {unsur}: {kategori.upper()}**")
-                    st.write(f"**Saran Sistem:** {saran_hara(kategori)}")
-                    st.write(f"**Langkah Tindakan:** {langkah_pupuk(kategori)}")
+                    st.info(f"Status Kandungan {unsur}: {kategori.upper()}")
+                    st.write(f"Saran Sistem: {saran_hara(kategori)}")
+                    st.write(f"Langkah Tindakan: {langkah_pupuk(kategori)}")
                     st.markdown("<br>", unsafe_allow_html=True)
