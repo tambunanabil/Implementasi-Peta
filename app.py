@@ -40,7 +40,7 @@ st.markdown("""
 [data-testid="stSidebar"], [data-testid="collapsedControl"], header { display: none !important; }
 
 .stApp {
-    background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url("https://images.unsplash.com/photo-1516253593875-bd7ba052fbc5?q=80&w=1600&auto=format&fit=crop");
+    background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url("https://images.unsplash.com/photo-1590165482129-1b8b27698780?q=80&w=1600&auto=format&fit=crop");
     background-size: cover;
     background-attachment: fixed;
     background-position: center;
@@ -364,9 +364,9 @@ elif st.session_state.page == 'fitur_peta':
     with col_peta:
         m = folium.Map(
             location=[-7.2106, 109.8941],
-            zoom_start=9,
-            tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-            attr='Google Maps Satellite'
+            zoom_start=11,
+            tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+            attr='Google Maps Hybrid'
         )
 
         if not df_data.empty:
