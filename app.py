@@ -81,6 +81,66 @@ st.markdown("""
     background-color: rgba(27, 67, 50, 1);
     border-color: white;
 }
+
+/* ── Kotak Hasil Evaluasi (tidak mirip tombol hijau) ── */
+.box-cocok {
+    background-color: rgba(0, 80, 140, 0.30);
+    border-left: 4px solid #4da6e0;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 8px 0;
+    color: #d0eeff;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+.box-netral {
+    background-color: rgba(140, 100, 0, 0.30);
+    border-left: 4px solid #e0b84d;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 8px 0;
+    color: #fff3cc;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+.box-tidak {
+    background-color: rgba(140, 30, 0, 0.30);
+    border-left: 4px solid #e05c4d;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 8px 0;
+    color: #ffe0dd;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+.box-info {
+    background-color: rgba(20, 50, 90, 0.40);
+    border-left: 4px solid #5b8dd9;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 8px 0;
+    color: #ccdcf5;
+    font-size: 0.95em;
+    line-height: 1.6;
+}
+.box-notice {
+    background-color: rgba(80, 60, 0, 0.35);
+    border-left: 4px solid #c9952a;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 8px 0;
+    color: #fde9b5;
+    font-size: 0.95em;
+}
+.box-error {
+    background-color: rgba(100, 20, 0, 0.35);
+    border-left: 4px solid #c94a3a;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 8px 0;
+    color: #ffd5d0;
+    font-size: 0.95em;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -298,10 +358,8 @@ elif st.session_state.page == 'fitur_peta':
         ph_manual = st.number_input("Input Data pH Lokal (Opsional)", 0.0, 14.0, 0.0, 0.1)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        if not df_data.empty:
-            st.success("Berhasil memuat data")
-        else:
-            st.error("Data tidak terdeteksi di server.")
+        if df_data.empty:
+            st.markdown("<div class='box-error'>Data lahan tidak terdeteksi di server.</div>", unsafe_allow_html=True)
 
     with col_peta:
         m = folium.Map(
@@ -379,30 +437,32 @@ elif st.session_state.page == 'fitur_peta':
 
             # ─── KONDISI: TITIK DI LUAR JANGKAUAN DATA ACUAN ───────
             if df_terfilter.empty:
-                st.warning(
-                    f"⚠️ Lokasi ini berada di luar jangkauan data acuan historis "
-                    f"(tidak ada titik referensi dalam radius {radius_km} km)."
+                st.markdown(
+                    f"<div class='box-notice'>Lokasi ini berada di luar jangkauan data acuan historis "
+                    f"&mdash; tidak ada titik referensi dalam radius {radius_km} km.</div>",
+                    unsafe_allow_html=True
                 )
 
                 # Simpan elevasi ke session state untuk dipakai di form
                 st.session_state.elevasi_terklik = elevasi_satelit
 
                 st.markdown("<br>", unsafe_allow_html=True)
-                st.info(
-                    "**Model Prediksi Kesesuaian Lahan (ANN)** tersedia sebagai alternatif.\n\n"
-                    "Masukkan 8 parameter sensor tanah berikut untuk mendapatkan prediksi "
-                    "kesesuaian lahan berbasis kecerdasan buatan:"
+                st.markdown(
+                    "<div class='box-info'><strong>Prediksi Kesesuaian Lahan via Model ANN</strong> tersedia "
+                    "sebagai alternatif.<br>Masukkan 8 parameter sensor tanah berikut untuk mendapatkan "
+                    "estimasi kesesuaian lahan di koordinat ini.</div>",
+                    unsafe_allow_html=True
                 )
 
                 # Tombol untuk tampilkan / sembunyikan form
                 if not st.session_state.show_kes_form:
                     col_ya, col_tidak = st.columns([1, 1])
                     with col_ya:
-                        if st.button("✅ Ya, saya ingin melakukan prediksi ANN", use_container_width=True):
+                        if st.button("Lanjutkan Prediksi", use_container_width=True):
                             st.session_state.show_kes_form = True
                             st.rerun()
                     with col_tidak:
-                        if st.button("❌ Tidak, tutup evaluasi", use_container_width=True):
+                        if st.button("Tutup Evaluasi", use_container_width=True):
                             st.session_state.clicked_lat  = None
                             st.session_state.clicked_lon  = None
                             st.session_state.show_kes_form = False
@@ -413,10 +473,11 @@ elif st.session_state.page == 'fitur_peta':
                     model_kes, scaler_kes = load_kesesuaian_model()
 
                     if model_kes is None:
-                        st.error(
-                            "Model kesesuaian belum ditemukan. Pastikan file "
-                            "**model_kesesuaian.keras** dan **scaler_kesesuaian.save** "
-                            "sudah berada di folder proyek."
+                        st.markdown(
+                            "<div class='box-error'>Model kesesuaian belum ditemukan. Pastikan file "
+                            "<strong>model_kesesuaian.keras</strong> dan <strong>scaler_kesesuaian.save</strong> "
+                            "sudah berada di folder proyek.</div>",
+                            unsafe_allow_html=True
                         )
                     else:
                         st.markdown("<h4>Input 8 Parameter Sensor Tanah</h4>", unsafe_allow_html=True)
@@ -442,7 +503,7 @@ elif st.session_state.page == 'fitur_peta':
                                 step=1.0, format="%.1f"
                             )
 
-                            submitted_kes = st.form_submit_button("🔍 Jalankan Prediksi Kesesuaian")
+                            submitted_kes = st.form_submit_button("Jalankan Prediksi Kesesuaian")
 
                         if submitted_kes:
                             with st.spinner("Model ANN sedang memproses..."):
@@ -457,11 +518,23 @@ elif st.session_state.page == 'fitur_peta':
 
                             # Tampilkan hasil utama
                             if label == 'Cocok':
-                                st.success(f"✅ PREDIKSI: **{label.upper()}** — Kondisi lahan berpotensi mendukung budidaya kentang.")
+                                st.markdown(
+                                    f"<div class='box-cocok'><strong>PREDIKSI &mdash; {label.upper()}</strong><br>"
+                                    f"Kondisi lahan berpotensi mendukung budidaya kentang.</div>",
+                                    unsafe_allow_html=True
+                                )
                             elif label == 'Netral':
-                                st.warning(f"⚠️ PREDIKSI: **{label.upper()}** — Lahan bersifat marginal, perlu perbaikan kondisi tanah.")
+                                st.markdown(
+                                    f"<div class='box-netral'><strong>PREDIKSI &mdash; {label.upper()}</strong><br>"
+                                    f"Lahan bersifat marginal, perlu perbaikan kondisi tanah.</div>",
+                                    unsafe_allow_html=True
+                                )
                             else:
-                                st.error(f"❌ PREDIKSI: **{label.upper()}** — Kondisi lahan kurang mendukung budidaya kentang.")
+                                st.markdown(
+                                    f"<div class='box-tidak'><strong>PREDIKSI &mdash; {label.upper()}</strong><br>"
+                                    f"Kondisi lahan kurang mendukung budidaya kentang.</div>",
+                                    unsafe_allow_html=True
+                                )
 
                             # Tampilkan confidence & distribusi probabilitas
                             st.markdown("<br>", unsafe_allow_html=True)
@@ -481,23 +554,41 @@ elif st.session_state.page == 'fitur_peta':
                 elev_min, elev_max = df_terfilter['Elevasi'].min(), df_terfilter['Elevasi'].max()
 
                 if elevasi_satelit < (elev_min - 50.0) or elevasi_satelit > (elev_max + 50.0):
-                    st.error(
-                        f"TIDAK COCOK: Ketinggian lokasi berada di luar batas toleransi wilayah terdekat "
-                        f"(Rentang Ketinggian Acuan: {elev_min:.0f} - {elev_max:.0f} mdpl)."
+                    st.markdown(
+                        f"<div class='box-tidak'><strong>TIDAK COCOK</strong><br>"
+                        f"Ketinggian lokasi berada di luar batas toleransi wilayah terdekat "
+                        f"(Rentang Acuan: {elev_min:.0f} &ndash; {elev_max:.0f} mdpl).</div>",
+                        unsafe_allow_html=True
                     )
                 else:
                     hitung_suara = df_terfilter['Status'].str.lower().value_counts()
 
                     if len(hitung_suara) > 1 and hitung_suara.iloc[0] == hitung_suara.iloc[1]:
-                        st.warning("NETRAL: Karakteristik data referensi di sekitar titik uji memiliki rasio yang seimbang (50:50).")
+                        st.markdown(
+                            "<div class='box-netral'><strong>NETRAL</strong><br>"
+                            "Karakteristik data referensi di sekitar titik uji memiliki rasio yang seimbang (50:50).</div>",
+                            unsafe_allow_html=True
+                        )
                     else:
                         suara_dominan = hitung_suara.idxmax()
                         if suara_dominan == 'cocok':
-                            st.success("COCOK: Mayoritas objek data observasi di sekitar lokasi ini menunjukkan kondisi lahan yang ideal.")
+                            st.markdown(
+                                "<div class='box-cocok'><strong>COCOK</strong><br>"
+                                "Mayoritas data observasi di sekitar lokasi ini menunjukkan kondisi lahan yang ideal.</div>",
+                                unsafe_allow_html=True
+                            )
                         elif suara_dominan == 'netral':
-                            st.warning("NETRAL: Zonasi di sekitar lokasi didominasi oleh karakteristik lahan marginal.")
+                            st.markdown(
+                                "<div class='box-netral'><strong>NETRAL</strong><br>"
+                                "Zonasi di sekitar lokasi didominasi oleh karakteristik lahan marginal.</div>",
+                                unsafe_allow_html=True
+                            )
                         else:
-                            st.error("TIDAK COCOK: Mayoritas objek data observasi historis tidak merekomendasikan komoditas ini.")
+                            st.markdown(
+                                "<div class='box-tidak'><strong>TIDAK COCOK</strong><br>"
+                                "Mayoritas data observasi historis tidak merekomendasikan komoditas ini.</div>",
+                                unsafe_allow_html=True
+                            )
 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown(f"<h5>Data Ketinggian & pH dari Objek Acuan Terdekat (Radius {radius_km} Km)</h5>", unsafe_allow_html=True)
@@ -511,7 +602,10 @@ elif st.session_state.page == 'fitur_peta':
                 st.dataframe(df_tabel, use_container_width=True, hide_index=True)
 
         else:
-            st.error("Gagal terhubung dengan server koordinat satelit untuk menarik data elevasi.")
+            st.markdown(
+                "<div class='box-error'>Gagal terhubung dengan server koordinat satelit untuk menarik data elevasi.</div>",
+                unsafe_allow_html=True
+            )
 
 # ==========================================
 # HALAMAN 2: REKOMENDASI PEMUPUKAN (FITUR 2)
@@ -578,19 +672,25 @@ elif st.session_state.page == 'fitur_pupuk':
             st.markdown("<h4>Analisis & Rekomendasi Pemupukan Kentang</h4>", unsafe_allow_html=True)
 
             kat_n = klasifikasi_n(raw_n)
-            st.info(f"Status Kandungan Nitrogen (N): {kat_n.upper()}")
-            st.write(f"Saran Sistem: {saran_n(kat_n)}")
-            st.write(f"Langkah Tindakan: {langkah_n(kat_n)}")
+            st.markdown(
+                f"<div class='box-info'><strong>Nitrogen (N) &mdash; {kat_n.upper()}</strong><br>"
+                f"{saran_n(kat_n)}<br><em>Tindakan:</em> {langkah_n(kat_n)}</div>",
+                unsafe_allow_html=True
+            )
             st.markdown("<br>", unsafe_allow_html=True)
 
             kat_p = klasifikasi_p(raw_p)
-            st.info(f"Status Kandungan Fosfor (P): {kat_p.upper()}")
-            st.write(f"Saran Sistem: {saran_p(kat_p)}")
-            st.write(f"Langkah Tindakan: {langkah_p(kat_p)}")
+            st.markdown(
+                f"<div class='box-info'><strong>Fosfor (P) &mdash; {kat_p.upper()}</strong><br>"
+                f"{saran_p(kat_p)}<br><em>Tindakan:</em> {langkah_p(kat_p)}</div>",
+                unsafe_allow_html=True
+            )
             st.markdown("<br>", unsafe_allow_html=True)
 
             kat_k = klasifikasi_k(raw_k)
-            st.info(f"Status Kandungan Kalium (K): {kat_k.upper()}")
-            st.write(f"Saran Sistem: {saran_k(kat_k)}")
-            st.write(f"Langkah Tindakan: {langkah_k(kat_k)}")
+            st.markdown(
+                f"<div class='box-info'><strong>Kalium (K) &mdash; {kat_k.upper()}</strong><br>"
+                f"{saran_k(kat_k)}<br><em>Tindakan:</em> {langkah_k(kat_k)}</div>",
+                unsafe_allow_html=True
+            )
             st.markdown("<br>", unsafe_allow_html=True)
