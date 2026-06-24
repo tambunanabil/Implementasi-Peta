@@ -594,4 +594,3 @@ elif st.session_state.page == 'fitur_pupuk':
             st.write(f"Saran Sistem: {saran_k(kat_k)}")
             st.write(f"Langkah Tindakan: {langkah_k(kat_k)}")
             st.markdown("<br>", unsafe_allow_html=True)
-​
