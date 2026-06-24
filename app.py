@@ -257,25 +257,25 @@ def prediksi_kesesuaian(ec, n, p, k, ph, moist, t_d, elevasi, model_kes, scaler_
 # 5. FUNGSI KLASIFIKASI & REKOMENDASI PUPUK
 # ==========================================
 def klasifikasi_n(val):
-    if val < 1000: return 'Sangat Rendah'
-    elif val <= 2000: return 'Rendah'
-    elif val <= 5000: return 'Sedang'
-    elif val <= 7500: return 'Tinggi'
-    else: return 'Sangat Tinggi'
+    if val < 2054:      return 'Sangat Rendah'
+    elif val <= 3512:   return 'Rendah'
+    elif val <= 4971:   return 'Sedang'
+    elif val <= 6429:   return 'Tinggi'
+    else:               return 'Sangat Tinggi'
 
 def klasifikasi_p(val):
-    if val < 15: return 'Sangat Rendah'
-    elif val <= 20: return 'Rendah'
-    elif val <= 40: return 'Sedang'
-    elif val <= 60: return 'Tinggi'
-    else: return 'Sangat Tinggi'
+    if val < 175:       return 'Sangat Rendah'
+    elif val <= 350:    return 'Rendah'
+    elif val <= 525:    return 'Sedang'
+    elif val <= 700:    return 'Tinggi'
+    else:               return 'Sangat Tinggi'
 
 def klasifikasi_k(val):
-    if val < 10: return 'Sangat Rendah'
-    elif val <= 20: return 'Rendah'
-    elif val <= 40: return 'Sedang'
-    elif val <= 60: return 'Tinggi'
-    else: return 'Sangat Tinggi'
+    if val < 306:       return 'Sangat Rendah'
+    elif val <= 580:    return 'Rendah'
+    elif val <= 854:    return 'Sedang'
+    elif val <= 1129:   return 'Tinggi'
+    else:               return 'Sangat Tinggi'
 
 def saran_n(kat):
     if kat in ['Sangat Rendah', 'Rendah']: return 'Fase vegetatif terancam. Tanaman kentang akan kerdil.'
