@@ -7,143 +7,132 @@ import numpy as np
 import sqlite3
 import joblib
 import os
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
+​
+# Menyembunyikan log TensorFlow yang tidak perlu di terminal
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+​
+# Memastikan pustaka TensorFlow terpasang di sistem
 try:
     from tensorflow import keras
     HAS_TF = True
 except ImportError:
     HAS_TF = False
-
+​
 # ==========================================
 # 1. PENGATURAN HALAMAN DASAR & SESSION STATE
 # ==========================================
 st.set_page_config(page_title="AgriGIS | Lahan Kentang", layout="wide", initial_sidebar_state="collapsed")
-
+​
 if 'page' not in st.session_state:
     st.session_state.page = 'beranda'
 if 'clicked_lat' not in st.session_state:
     st.session_state.clicked_lat = None
 if 'clicked_lon' not in st.session_state:
     st.session_state.clicked_lon = None
-if 'show_kes_form' not in st.session_state:
-    st.session_state.show_kes_form = False
-if 'elevasi_terklik' not in st.session_state:
-    st.session_state.elevasi_terklik = None
-
+​
 # ==========================================
 # 2. CSS: GLASSMORPHISM & TATA LETAK TERPUSAT
 # ==========================================
 st.markdown("""
-<style>
-[data-testid="stSidebar"], [data-testid="collapsedControl"], header { display: none !important; }
-
-.stApp {
-    background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url("https://images.unsplash.com/photo-1590165482129-1b8b27698780?q=80&w=1600&auto=format&fit=crop");
-    background-size: cover;
-    background-attachment: fixed;
-    background-position: center;
-}
-
-.block-container {
-    background-color: rgba(20, 32, 20, 0.65) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 16px;
-    padding: 40px 50px !important;
-    max-width: 1140px !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-    margin-top: 10vh !important;
-    margin-bottom: 10vh !important;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
-}
-
-.stMarkdown, .stText, label, .stMarkdown p, h1, h2, h3, h4, h5, h6 {
-    color: #ffffff !important;
-}
-[data-testid="stMetricValue"] { color: #ffffff !important; }
-[data-testid="stMetricLabel"] { color: #cccccc !important; }
-
-.stButton>button {
-    background-color: rgba(45, 106, 79, 0.95);
-    color: white !important;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 6px;
-    padding: 10px 20px;
-    font-weight: 600;
-    transition: 0.2s;
-    width: 100%;
-}
-.stButton>button:hover {
-    background-color: rgba(27, 67, 50, 1);
-    border-color: white;
-}
-
-/* ── Kotak Hasil Evaluasi (tidak mirip tombol hijau) ── */
-.box-cocok {
-    background-color: rgba(0, 80, 140, 0.30);
-    border-left: 4px solid #4da6e0;
-    border-radius: 8px;
-    padding: 14px 18px;
-    margin: 8px 0;
-    color: #d0eeff;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-}
-.box-netral {
-    background-color: rgba(140, 100, 0, 0.30);
-    border-left: 4px solid #e0b84d;
-    border-radius: 8px;
-    padding: 14px 18px;
-    margin: 8px 0;
-    color: #fff3cc;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-}
-.box-tidak {
-    background-color: rgba(140, 30, 0, 0.30);
-    border-left: 4px solid #e05c4d;
-    border-radius: 8px;
-    padding: 14px 18px;
-    margin: 8px 0;
-    color: #ffe0dd;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-}
-.box-info {
-    background-color: rgba(20, 50, 90, 0.40);
-    border-left: 4px solid #5b8dd9;
-    border-radius: 8px;
-    padding: 14px 18px;
-    margin: 8px 0;
-    color: #ccdcf5;
-    font-size: 0.95em;
-    line-height: 1.6;
-}
-.box-notice {
-    background-color: rgba(80, 60, 0, 0.35);
-    border-left: 4px solid #c9952a;
-    border-radius: 8px;
-    padding: 14px 18px;
-    margin: 8px 0;
-    color: #fde9b5;
-    font-size: 0.95em;
-}
-.box-error {
-    background-color: rgba(100, 20, 0, 0.35);
-    border-left: 4px solid #c94a3a;
-    border-radius: 8px;
-    padding: 14px 18px;
-    margin: 8px 0;
-    color: #ffd5d0;
-    font-size: 0.95em;
-}
-</style>
+    <style>
+    /* Sembunyikan elemen bawaan Streamlit */
+    [data-testid="stSidebar"], [data-testid="collapsedControl"], header { display: none !important; }
+​
+    /* Latar Belakang Pertanian Realistis */
+    .stApp {
+        background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url("https://images.unsplash.com/photo-1516253593875-bd7ba052fbc5?q=80&w=1600&auto=format&fit=crop");
+        background-size: cover;
+        background-attachment: fixed;
+        background-position: center;
+    }
+​
+    /* WADAH UTAMA: Panel kaca buram yang simetris di tengah */
+    .block-container {
+        background-color: rgba(20, 32, 20, 0.65) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 16px;
+        padding: 40px 50px !important;
+        max-width: 1140px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        margin-top: 10vh !important; 
+        margin-bottom: 10vh !important;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    }
+​
+    /* Warna Teks agar kontras dengan latar gelap */
+    .stMarkdown, .stText, label, .stMarkdown p, h1, h2, h3, h4, h5, h6 {
+        color: #ffffff !important;
+    }
+    [data-testid="stMetricValue"] { color: #ffffff !important; }
+    [data-testid="stMetricLabel"] { color: #cccccc !important; }
+​
+    /* Desain Tombol Navigasi dan Form */
+    .stButton>button {
+        background-color: rgba(45, 106, 79, 0.95);
+        color: white !important;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+        padding: 10px 20px;
+        font-weight: 600;
+        transition: 0.2s;
+        width: 100%;
+    }
+    .stButton>button:hover {
+        background-color: rgba(27, 67, 50, 1);
+        border-color: white;
+    }
+​
+    /* =======================================================
+       RESPONSIVE / MOBILE (layar <= 768px, mis. HP)
+       ======================================================= */
+    @media (max-width: 768px) {
+        /* Background 'fixed' bermasalah & berat di iOS/Android -> ganti scroll */
+        .stApp {
+            background-attachment: scroll !important;
+        }
+​
+        /* Panel kaca: kurangi padding & margin supaya tidak sempit */
+        .block-container {
+            padding: 18px 14px !important;
+            margin-top: 2vh !important;
+            margin-bottom: 2vh !important;
+            border-radius: 10px;
+            max-width: 100% !important;
+        }
+​
+        /* Paksa SEMUA kolom menumpuk ke bawah (vertikal) di HP */
+        [data-testid="stHorizontalBlock"] {
+            flex-direction: column !important;
+            gap: 0.5rem !important;
+        }
+        [data-testid="stColumn"],
+        [data-testid="column"] {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+        }
+​
+        /* Ukuran judul lebih proporsional di layar kecil */
+        h1 { font-size: 1.5rem !important; line-height: 1.25 !important; }
+        h2 { font-size: 1.25rem !important; }
+        h4, h5 { font-size: 1rem !important; }
+        .stMarkdown p { font-size: 14px !important; }
+​
+        /* Tombol penuh & nyaman disentuh */
+        .stButton>button {
+            padding: 12px 16px;
+            font-size: 15px;
+        }
+​
+        /* Tabel hasil bisa digeser horizontal tanpa merusak layout */
+        [data-testid="stDataFrame"] { overflow-x: auto !important; }
+    }
+    </style>
 """, unsafe_allow_html=True)
-
+​
 # ==========================================
 # 3. FUNGSI LOGIKA SPASIAL (FITUR 1)
 # ==========================================
@@ -158,7 +147,7 @@ def load_data_peta():
             df = pd.read_excel('Data_Kesesuaian.xlsx')
         except:
             return pd.DataFrame()
-
+            
     if not df.empty:
         df.columns = df.columns.str.strip()
         if 'Latitude' in df.columns: df.rename(columns={'Latitude': 'Lat'}, inplace=True)
@@ -166,7 +155,7 @@ def load_data_peta():
         if 'Longitude' in df.columns: df.rename(columns={'Longitude': 'Lon'}, inplace=True)
         elif 'lon' in df.columns: df.rename(columns={'lon': 'Lon'}, inplace=True)
         if 'Kecocokan' in df.columns: df.rename(columns={'Kecocokan': 'Status'}, inplace=True)
-
+​
         if 'Lat' in df.columns and 'Lon' in df.columns:
             df['Lat'] = pd.to_numeric(df['Lat'], errors='coerce')
             df['Lon'] = pd.to_numeric(df['Lon'], errors='coerce')
@@ -174,27 +163,27 @@ def load_data_peta():
             df['Lon'] = df['Lon'].ffill()
             df = df.dropna(subset=['Lat', 'Lon'])
             df = df.drop_duplicates(subset=['Lat', 'Lon'], keep='first')
-
+            
     return df
-
+​
 def get_elevation(lat, lon):
     try:
         url = f"https://api.open-meteo.com/v1/elevation?latitude={lat}&longitude={lon}"
         res = requests.get(url).json()
         return res["elevation"][0] if "elevation" in res else None
     except: return None
-
+​
 def hitung_jarak_haversine(lat1, lon1, lat2, lon2):
-    R = 6371.0
+    R = 6371.0 
     lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
     dlat = lat2 - lat1
     dlon = lon2 - lon1
     a = np.sin(dlat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2)**2
     c = 2 * np.arcsin(np.sqrt(a))
     return R * c
-
+​
 # ==========================================
-# 4. FUNGSI MODEL ANN PUPUK (FITUR 2)
+# 4. FUNGSI MACHINE LEARNING & REKOMENDASI (FITUR 2)
 # ==========================================
 @st.cache_resource
 def load_ann_model():
@@ -206,412 +195,220 @@ def load_ann_model():
         return model, scaler_X, scaler_y
     except:
         return None, None, None
-
-# ==========================================
-# 4B. FUNGSI MODEL ANN KESESUAIAN LAHAN (FALLBACK FITUR 1)
-# ==========================================
-@st.cache_resource
-def load_kesesuaian_model():
-    """Load model ANN kesesuaian lahan beserta scaler-nya."""
-    if not HAS_TF: return None, None
-    try:
-        model_kes = keras.models.load_model("model_kesesuaian.keras", compile=False)
-        scaler_kes = joblib.load("scaler_kesesuaian.save")
-        return model_kes, scaler_kes
-    except:
-        return None, None
-
-# Spearman weights iterasi ke-3 (digunakan saat training model kesesuaian)
-_SPEARMAN_RAW = np.array([
-    15.129147,  # EC
-    11.488127,  # N
-    5.098820,   # P
-    10.377051,  # K
-    2.214403,   # PH
-    0.700232,   # Moist
-    24.369542,  # T_D
-    30.622679   # Elevasi
-], dtype='float32')
-SPEARMAN_KES_WEIGHTS = _SPEARMAN_RAW / _SPEARMAN_RAW.sum()
-
-def prediksi_kesesuaian(ec, n, p, k, ph, moist, t_d, elevasi, model_kes, scaler_kes):
-    """
-    Jalankan model ANN kesesuaian lahan.
-    Urutan input: EC, N, P, K, PH, Moist, T_D, Elevasi
-    Output: (label_str, confidence_float, probs_array)
-    """
-    label_map = {0: 'Tidak Cocok', 1: 'Netral', 2: 'Cocok'}
-    warna_map = {'Cocok': '#0072B2', 'Netral': '#E69F00', 'Tidak Cocok': '#D55E00'}
-
-    input_arr = np.array([[ec, n, p, k, ph, moist, t_d, elevasi]], dtype='float32')
-    X_scaled = scaler_kes.transform(input_arr)
-    X_weighted = X_scaled * SPEARMAN_KES_WEIGHTS
-    probs = model_kes.predict(X_weighted, verbose=0)
-    pred_idx = int(np.argmax(probs, axis=1)[0])
-    label = label_map[pred_idx]
-    confidence = float(np.max(probs))
-    warna = warna_map[label]
-    return label, confidence, probs[0], warna
-
-# ==========================================
-# 5. FUNGSI KLASIFIKASI & REKOMENDASI PUPUK
-# ==========================================
+​
+# --- FUNGSI KLASIFIKASI STANDAR BALITTANAH ---
 def klasifikasi_n(val):
-    if val < 2054:      return 'Sangat Rendah'
-    elif val <= 3512:   return 'Rendah'
-    elif val <= 4971:   return 'Sedang'
-    elif val <= 6429:   return 'Tinggi'
-    else:               return 'Sangat Tinggi'
-
+    if val < 1000: return 'Sangat Rendah'
+    elif val <= 2000: return 'Rendah'
+    elif val <= 5000: return 'Sedang'
+    elif val <= 7500: return 'Tinggi'
+    else: return 'Sangat Tinggi'
+​
 def klasifikasi_p(val):
-    if val < 175:       return 'Sangat Rendah'
-    elif val <= 350:    return 'Rendah'
-    elif val <= 525:    return 'Sedang'
-    elif val <= 700:    return 'Tinggi'
-    else:               return 'Sangat Tinggi'
-
+    if val < 15: return 'Sangat Rendah'
+    elif val <= 20: return 'Rendah'
+    elif val <= 40: return 'Sedang'
+    elif val <= 60: return 'Tinggi'
+    else: return 'Sangat Tinggi'
+​
 def klasifikasi_k(val):
-    if val < 306:       return 'Sangat Rendah'
-    elif val <= 580:    return 'Rendah'
-    elif val <= 854:    return 'Sedang'
-    elif val <= 1129:   return 'Tinggi'
-    else:               return 'Sangat Tinggi'
-
+    if val < 10: return 'Sangat Rendah'
+    elif val <= 20: return 'Rendah'
+    elif val <= 40: return 'Sedang'
+    elif val <= 60: return 'Tinggi'
+    else: return 'Sangat Tinggi'
+​
+# --- FUNGSI REKOMENDASI SPESIFIK KENTANG ---
 def saran_n(kat):
     if kat in ['Sangat Rendah', 'Rendah']: return 'Fase vegetatif terancam. Tanaman kentang akan kerdil.'
     elif kat == 'Sedang': return 'Kebutuhan N tercukupi untuk pertumbuhan daun.'
     else: return 'Kelebihan N. Tanaman akan terlalu rimbun daun namun pembentukan umbi terhambat.'
-
+​
 def langkah_n(kat):
     if kat in ['Sangat Rendah', 'Rendah']: return 'Berikan pupuk Urea/ZA dosis penuh pada fase awal tanam.'
     elif kat == 'Sedang': return 'Lakukan pemupukan N standar sesuai rekomendasi lokal.'
     else: return 'Kurangi dosis pupuk N. Fokuskan nutrisi untuk pembesaran umbi kentang.'
-
+​
 def saran_p(kat):
     if kat in ['Sangat Rendah', 'Rendah']: return 'Perakaran dan inisiasi umbi kentang akan sangat terhambat.'
     elif kat == 'Sedang': return 'Status P cukup, namun kentang butuh P tinggi untuk umbi.'
     else: return 'Kandungan Fosfor melimpah di dalam tanah.'
-
+​
 def langkah_p(kat):
     if kat in ['Sangat Rendah', 'Rendah']: return 'Wajib aplikasikan pupuk dasar SP-36/TSP dosis tinggi sebelum tanam.'
     elif kat == 'Sedang': return 'Tambahkan pupuk P dosis sedang untuk memaksimalkan jumlah umbi.'
     else: return 'Gunakan pupuk hayati (mikroba pelarut fosfat) untuk mencairkan P yang terikat di tanah.'
-
+​
 def saran_k(kat):
     if kat in ['Sangat Rendah', 'Rendah']: return 'Sangat kritis! Pembesaran umbi kentang akan gagal/kualitas rendah.'
     elif kat == 'Sedang': return 'Kentang adalah tanaman rakus Kalium. Status Sedang masih perlu tambahan.'
     else: return 'Ketersediaan Kalium optimal untuk sintesis pati dan pembesaran umbi.'
-
+​
 def langkah_k(kat):
     if kat in ['Sangat Rendah', 'Rendah']: return 'Segera aplikasikan pupuk KCl/ZK dosis tinggi pada fase pembentukan umbi.'
     elif kat == 'Sedang': return 'Berikan pupuk Kalium susulan pada fase pengisian umbi.'
     else: return 'Pemupukan Kalium kimia dapat dikurangi. Lakukan pemeliharaan standar.'
-
+​
 df_data = load_data_peta()
-
+​
 # ==========================================
-# HALAMAN 0: BERANDA UTAMA
+# HALAMAN 0: BERANDA UTAMA 
 # ==========================================
 if st.session_state.page == 'beranda':
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("<h1 style='text-align: center; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.6);'>Sistem Informasi Spasial Lahan Kentang</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; font-size: 18px; color: #e2e2e2;'>Platform Prediksi Kesesuaian Lahan Berbasis Agroklimat & Sebaran Hara</p>", unsafe_allow_html=True)
     st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 40px 0;'>", unsafe_allow_html=True)
-
+    
     col_kiri, col_btn1, col_btn2, col_kanan = st.columns([1, 1.5, 1.5, 1])
-
+    
     with col_btn1:
         if st.button("Peta Kesesuaian Lahan", use_container_width=True):
             st.session_state.page = 'fitur_peta'
-            st.session_state.show_kes_form = False
             st.rerun()
     with col_btn2:
         if st.button("Rekomendasi Pemupukan", use_container_width=True):
             st.session_state.page = 'fitur_pupuk'
             st.rerun()
-
+            
     st.markdown("<br><br>", unsafe_allow_html=True)
-
+​
 # ==========================================
 # HALAMAN 1: PETA KESESUAIAN (FITUR 1)
 # ==========================================
 elif st.session_state.page == 'fitur_peta':
-
+    
     col_judul, col_kembali = st.columns([4, 1])
     with col_judul:
         st.markdown("<h2 style='margin:0; font-weight: 700;'>Pemetaan Kesesuaian Lahan</h2>", unsafe_allow_html=True)
     with col_kembali:
         if st.button("Kembali ke Beranda"):
             st.session_state.page = 'beranda'
-            st.session_state.show_kes_form = False
-            st.session_state.clicked_lat = None
-            st.session_state.clicked_lon = None
             st.rerun()
-
+            
     st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 15px 0 25px 0;'>", unsafe_allow_html=True)
-
+​
     col_input, col_peta = st.columns([1.2, 2.8])
-
+    
     with col_input:
         st.markdown("<h4>Parameter Analisis</h4>", unsafe_allow_html=True)
         radius_km = st.slider("Radius Batas Toleransi (Km)", 1.0, 15.0, 3.0, 0.5)
         ph_manual = st.number_input("Input Data pH Lokal (Opsional)", 0.0, 14.0, 0.0, 0.1)
-
+        
         st.markdown("<br>", unsafe_allow_html=True)
-        if df_data.empty:
-            st.markdown("<div class='box-error'>Data lahan tidak terdeteksi di server.</div>", unsafe_allow_html=True)
-
+        if not df_data.empty:
+            st.success("Berhasil memuat data")
+        else:
+            st.error("Data tidak terdeteksi di server.")
+            
     with col_peta:
         m = folium.Map(
-            location=[-7.2106, 109.8941],
-            zoom_start=11,
-            tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-            attr='Google Maps Hybrid'
+            location=[-7.2106, 109.8941], 
+            zoom_start=9, 
+            tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 
+            attr='Google Maps Satellite'
         )
-
+        
         if not df_data.empty:
             for _, row in df_data.iterrows():
                 kategori = str(row.get('Status', '')).strip().lower()
-
+                
                 if kategori == 'cocok': warna = '#0072B2'
                 elif kategori == 'netral': warna = '#E69F00'
                 else: warna = '#D55E00'
-
+​
                 ph_tanah = row.get('PH_S1', 'N/A')
-                elev     = row.get('Elevasi', 'N/A')
-                desa     = row.get('Desa', 'N/A')
+                elev = row.get('Elevasi', 'N/A')
+                desa = row.get('Desa', 'N/A')
                 kabupaten = row.get('Kabupaten', 'N/A')
-
+                
                 popup_text = f"""
-<div style='color: black; font-family: sans-serif; font-size: 12px; line-height: 1.5; min-width: 150px;'>
-<b style='font-size: 13px; color: {warna};'>{kategori.upper()}</b><br>
-<hr style='margin: 4px 0; border: 0; border-top: 1px solid #ccc;'>
-<b>Desa:</b> {desa}<br>
-<b>Kabupaten:</b> {kabupaten}<br>
-<b>Elevasi:</b> {elev} mdpl<br>
-<b>pH:</b> {ph_tanah}
-</div>
-"""
+                <div style='color: black; font-family: sans-serif; font-size: 12px; line-height: 1.5; min-width: 150px;'>
+                    <b style='font-size: 13px; color: {warna};'>{kategori.upper()}</b><br>
+                    <hr style='margin: 4px 0; border: 0; border-top: 1px solid #ccc;'>
+                    <b>Desa:</b> {desa}<br>
+                    <b>Kabupaten:</b> {kabupaten}<br>
+                    <b>Elevasi:</b> {elev} mdpl<br>
+                    <b>pH:</b> {ph_tanah}
+                </div>
+                """
+                
                 folium.CircleMarker(
                     location=[row['Lat'], row['Lon']],
                     radius=6, color='white', weight=1.5, fill=True, fill_color=warna, fill_opacity=1.0,
                     popup=folium.Popup(popup_text, max_width=250)
                 ).add_to(m)
-
+​
         if st.session_state.clicked_lat is not None:
             folium.Marker(
                 location=[st.session_state.clicked_lat, st.session_state.clicked_lon],
                 icon=folium.Icon(color='blue', icon='info-sign')
             ).add_to(m)
-
+            
         map_interaction = st_folium(m, use_container_width=True, height=450, returned_objects=["last_clicked"])
-
-        if map_interaction and map_interaction.get("last_clicked"):
-            lat_klik = map_interaction["last_clicked"]["lat"]
-            lon_klik = map_interaction["last_clicked"]["lng"]
-
-            if st.session_state.clicked_lat != lat_klik or st.session_state.clicked_lon != lon_klik:
-                st.session_state.clicked_lat  = lat_klik
-                st.session_state.clicked_lon  = lon_klik
-                st.session_state.show_kes_form = False  # reset form saat titik baru diklik
-                st.rerun()
-
-    # ─── BAGIAN HASIL EVALUASI ───────────────────────────────────
+​
+    if map_interaction and map_interaction.get("last_clicked"):
+        lat_klik = map_interaction["last_clicked"]["lat"]
+        lon_klik = map_interaction["last_clicked"]["lng"]
+        
+        if st.session_state.clicked_lat != lat_klik or st.session_state.clicked_lon != lon_klik:
+            st.session_state.clicked_lat = lat_klik
+            st.session_state.clicked_lon = lon_klik
+            st.rerun()
+​
     if st.session_state.clicked_lat is not None:
         st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 30px 0 20px 0;'>", unsafe_allow_html=True)
         lat_eval = st.session_state.clicked_lat
         lon_eval = st.session_state.clicked_lon
-
+        
         with st.spinner("Memproses analisis spasial wilayah..."):
             elevasi_satelit = get_elevation(lat_eval, lon_eval)
-
-        if not df_data.empty and elevasi_satelit is not None:
-            df_working = df_data.copy()
-            df_working['Jarak_Km'] = df_working.apply(
-                lambda r: hitung_jarak_haversine(lat_eval, lon_eval, r['Lat'], r['Lon']), axis=1
-            )
-            df_terfilter = df_working[df_working['Jarak_Km'] <= radius_km].copy()
-
-            st.markdown("<h4>Hasil Evaluasi Lokasi</h4>", unsafe_allow_html=True)
-            st.write(f"Koordinat Titik Uji: {lat_eval:.5f}, {lon_eval:.5f} | Ketinggian Tanah: {elevasi_satelit:.1f} mdpl")
-
-            # ─── KONDISI: TITIK DI LUAR JANGKAUAN DATA ACUAN ───────
-            if df_terfilter.empty:
-                st.markdown(
-                    f"<div class='box-notice'>Lokasi ini berada di luar jangkauan data acuan historis "
-                    f"&mdash; tidak ada titik referensi dalam radius {radius_km} km.</div>",
-                    unsafe_allow_html=True
-                )
-
-                # Simpan elevasi ke session state untuk dipakai di form
-                st.session_state.elevasi_terklik = elevasi_satelit
-
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown(
-                    "<div class='box-info'><strong>Prediksi Kesesuaian Lahan via Model ANN</strong> tersedia "
-                    "sebagai alternatif.<br>Masukkan 8 parameter sensor tanah berikut untuk mendapatkan "
-                    "estimasi kesesuaian lahan di koordinat ini.</div>",
-                    unsafe_allow_html=True
-                )
-
-                # Tombol untuk tampilkan / sembunyikan form
-                if not st.session_state.show_kes_form:
-                    col_ya, col_tidak = st.columns([1, 1])
-                    with col_ya:
-                        if st.button("Lanjutkan Prediksi", use_container_width=True):
-                            st.session_state.show_kes_form = True
-                            st.rerun()
-                    with col_tidak:
-                        if st.button("Tutup Evaluasi", use_container_width=True):
-                            st.session_state.clicked_lat  = None
-                            st.session_state.clicked_lon  = None
-                            st.session_state.show_kes_form = False
-                            st.rerun()
-
-                # ─── FORM INPUT 8 PARAMETER ──────────────────────────
-                if st.session_state.show_kes_form:
-                    model_kes, scaler_kes = load_kesesuaian_model()
-
-                    if model_kes is None:
-                        st.markdown(
-                            "<div class='box-error'>Model kesesuaian belum ditemukan. Pastikan file "
-                            "<strong>model_kesesuaian.keras</strong> dan <strong>scaler_kesesuaian.save</strong> "
-                            "sudah berada di folder proyek.</div>",
-                            unsafe_allow_html=True
-                        )
-                    else:
-                        st.markdown("<h4>Input 8 Parameter Sensor Tanah</h4>", unsafe_allow_html=True)
-                        st.write(
-                            "Masukkan hasil pengukuran dari alat sensor tanah Anda. "
-                            "Nilai Elevasi sudah terisi otomatis dari koordinat yang diklik."
-                        )
-
-                        with st.form("form_kesesuaian_ann"):
-                            r1c1, r1c2, r1c3, r1c4 = st.columns(4)
-                            ec_in    = r1c1.number_input("EC (μS/cm)",          value=0.0, step=0.1, format="%.2f")
-                            n_in     = r1c2.number_input("N — Nitrogen Sensor", value=0.0, step=0.1, format="%.2f")
-                            p_in     = r1c3.number_input("P — Fosfor Sensor",   value=0.0, step=0.1, format="%.2f")
-                            k_in     = r1c4.number_input("K — Kalium Sensor",   value=0.0, step=0.1, format="%.2f")
-
-                            r2c1, r2c2, r2c3, r2c4 = st.columns(4)
-                            ph_in    = r2c1.number_input("pH Tanah",             value=7.0, step=0.1, format="%.2f")
-                            moist_in = r2c2.number_input("Kelembaban (%)",       value=0.0, step=0.1, format="%.2f")
-                            td_in    = r2c3.number_input("Suhu Dalam Tanah (°C)",value=20.0, step=0.1, format="%.2f")
-                            elev_in  = r2c4.number_input(
-                                "Elevasi (mdpl)",
-                                value=float(st.session_state.elevasi_terklik),
-                                step=1.0, format="%.1f"
-                            )
-
-                            submitted_kes = st.form_submit_button("Jalankan Prediksi Kesesuaian")
-
-                        if submitted_kes:
-                            with st.spinner("Model ANN sedang memproses..."):
-                                label, conf, probs_arr, warna_hasil = prediksi_kesesuaian(
-                                    ec_in, n_in, p_in, k_in,
-                                    ph_in, moist_in, td_in, elev_in,
-                                    model_kes, scaler_kes
-                                )
-
-                            st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 20px 0;'>", unsafe_allow_html=True)
-                            st.markdown("<h4>Hasil Prediksi Kesesuaian Lahan (ANN)</h4>", unsafe_allow_html=True)
-
-                            # Tampilkan hasil utama
-                            if label == 'Cocok':
-                                st.markdown(
-                                    f"<div class='box-cocok'><strong>PREDIKSI &mdash; {label.upper()}</strong><br>"
-                                    f"Kondisi lahan berpotensi mendukung budidaya kentang.</div>",
-                                    unsafe_allow_html=True
-                                )
-                            elif label == 'Netral':
-                                st.markdown(
-                                    f"<div class='box-netral'><strong>PREDIKSI &mdash; {label.upper()}</strong><br>"
-                                    f"Lahan bersifat marginal, perlu perbaikan kondisi tanah.</div>",
-                                    unsafe_allow_html=True
-                                )
-                            else:
-                                st.markdown(
-                                    f"<div class='box-tidak'><strong>PREDIKSI &mdash; {label.upper()}</strong><br>"
-                                    f"Kondisi lahan kurang mendukung budidaya kentang.</div>",
-                                    unsafe_allow_html=True
-                                )
-
-                            # Tampilkan confidence & distribusi probabilitas
-                            st.markdown("<br>", unsafe_allow_html=True)
-                            col_conf1, col_conf2, col_conf3 = st.columns(3)
-                            col_conf1.metric("Tidak Cocok", f"{probs_arr[0]*100:.1f}%")
-                            col_conf2.metric("Netral",      f"{probs_arr[1]*100:.1f}%")
-                            col_conf3.metric("Cocok",       f"{probs_arr[2]*100:.1f}%")
-
-                            st.caption(
-                                f"Tingkat keyakinan model: **{conf*100:.1f}%** · "
-                                f"Input elevasi: {elev_in:.1f} mdpl · "
-                                f"Koordinat: {lat_eval:.5f}, {lon_eval:.5f}"
-                            )
-
-            # ─── KONDISI: TITIK DALAM JANGKAUAN ────────────────────
-            else:
-                elev_min, elev_max = df_terfilter['Elevasi'].min(), df_terfilter['Elevasi'].max()
-
-                if elevasi_satelit < (elev_min - 50.0) or elevasi_satelit > (elev_max + 50.0):
-                    st.markdown(
-                        f"<div class='box-tidak'><strong>TIDAK COCOK</strong><br>"
-                        f"Ketinggian lokasi berada di luar batas toleransi wilayah terdekat "
-                        f"(Rentang Acuan: {elev_min:.0f} &ndash; {elev_max:.0f} mdpl).</div>",
-                        unsafe_allow_html=True
-                    )
+            
+            if not df_data.empty and elevasi_satelit is not None:
+                df_working = df_data.copy()
+                df_working['Jarak_Km'] = df_working.apply(lambda r: hitung_jarak_haversine(lat_eval, lon_eval, r['Lat'], r['Lon']), axis=1)
+                df_terfilter = df_working[df_working['Jarak_Km'] <= radius_km].copy()
+                
+                st.markdown("<h4>Hasil Evaluasi Lokasi</h4>", unsafe_allow_html=True)
+                st.write(f"Koordinat Titik Uji: {lat_eval:.5f}, {lon_eval:.5f} | Ketinggian Tanah: {elevasi_satelit:.1f} mdpl")
+                
+                if df_terfilter.empty:
+                    st.error(f"EVALUASI: Di Luar Jangkauan. Tidak ditemukan titik data acuan historis dalam radius {radius_km} km.")
                 else:
-                    hitung_suara = df_terfilter['Status'].str.lower().value_counts()
-
-                    if len(hitung_suara) > 1 and hitung_suara.iloc[0] == hitung_suara.iloc[1]:
-                        st.markdown(
-                            "<div class='box-netral'><strong>NETRAL</strong><br>"
-                            "Karakteristik data referensi di sekitar titik uji memiliki rasio yang seimbang (50:50).</div>",
-                            unsafe_allow_html=True
-                        )
+                    elev_min, elev_max = df_terfilter['Elevasi'].min(), df_terfilter['Elevasi'].max()
+                    
+                    if elevasi_satelit < (elev_min - 50.0) or elevasi_satelit > (elev_max + 50.0):
+                        st.error(f"TIDAK COCOK: Ketinggian lokasi berada di luar batas toleransi wilayah terdekat (Rentang Ketinggian Acuan: {elev_min:.0f} - {elev_max:.0f} mdpl).")
                     else:
-                        suara_dominan = hitung_suara.idxmax()
-                        if suara_dominan == 'cocok':
-                            st.markdown(
-                                "<div class='box-cocok'><strong>COCOK</strong><br>"
-                                "Mayoritas data observasi di sekitar lokasi ini menunjukkan kondisi lahan yang ideal.</div>",
-                                unsafe_allow_html=True
-                            )
-                        elif suara_dominan == 'netral':
-                            st.markdown(
-                                "<div class='box-netral'><strong>NETRAL</strong><br>"
-                                "Zonasi di sekitar lokasi didominasi oleh karakteristik lahan marginal.</div>",
-                                unsafe_allow_html=True
-                            )
+                        hitung_suara = df_terfilter['Status'].str.lower().value_counts()
+                        
+                        if len(hitung_suara) > 1 and hitung_suara.iloc[0] == hitung_suara.iloc[1]:
+                            st.warning("NETRAL: Karakteristik data referensi di sekitar titik uji memiliki rasio yang seimbang (50:50).")
                         else:
-                            st.markdown(
-                                "<div class='box-tidak'><strong>TIDAK COCOK</strong><br>"
-                                "Mayoritas data observasi historis tidak merekomendasikan komoditas ini.</div>",
-                                unsafe_allow_html=True
-                            )
-
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown(f"<h5>Data Ketinggian & pH dari Objek Acuan Terdekat (Radius {radius_km} Km)</h5>", unsafe_allow_html=True)
-
-                df_tabel = df_terfilter[['Kabupaten', 'Desa', 'Elevasi', 'PH_S1', 'Status', 'Jarak_Km']].copy()
-                df_tabel['Jarak_Km'] = df_tabel['Jarak_Km'].round(2)
-                df_tabel.rename(columns={
-                    'Elevasi': 'Ketinggian (mdpl)', 'PH_S1': 'pH Tanah',
-                    'Status': 'Kategori Lahan', 'Jarak_Km': 'Jarak ke Lokasi Uji (Km)'
-                }, inplace=True)
-                st.dataframe(df_tabel, use_container_width=True, hide_index=True)
-
-        else:
-            st.markdown(
-                "<div class='box-error'>Gagal terhubung dengan server koordinat satelit untuk menarik data elevasi.</div>",
-                unsafe_allow_html=True
-            )
-
+                            suara_dominan = hitung_suara.idxmax()
+                            if suara_dominan == 'cocok':
+                                st.success("COCOK: Mayoritas objek data observasi di sekitar lokasi ini menunjukkan kondisi lahan yang ideal.")
+                            elif suara_dominan == 'netral':
+                                st.warning("NETRAL: Zonasi di sekitar lokasi didominasi oleh karakteristik lahan marginal.")
+                            else:
+                                st.error("TIDAK COCOK: Mayoritas objek data observasi historis tidak merekomendasikan komoditas ini.")
+                    
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.markdown(f"<h5>Data Ketinggian & pH dari Objek Acuan Terdekat (Radius {radius_km} Km)</h5>", unsafe_allow_html=True)
+                    
+                    df_tabel = df_terfilter[['Kabupaten', 'Desa', 'Elevasi', 'PH_S1', 'Status', 'Jarak_Km']].copy()
+                    df_tabel['Jarak_Km'] = df_tabel['Jarak_Km'].round(2)
+                    df_tabel.rename(columns={'Elevasi': 'Ketinggian (mdpl)', 'PH_S1': 'pH Tanah', 'Status': 'Kategori Lahan', 'Jarak_Km': 'Jarak ke Lokasi Uji (Km)'}, inplace=True)
+                    
+                    st.dataframe(df_tabel, use_container_width=True, hide_index=True)
+            else:
+                st.error("Gagal terhubung dengan server koordinat satelit untuk menarik data elevasi.")
+​
 # ==========================================
 # HALAMAN 2: REKOMENDASI PEMUPUKAN (FITUR 2)
 # ==========================================
 elif st.session_state.page == 'fitur_pupuk':
-
+    
     col_judul, col_kembali = st.columns([4, 1])
     with col_judul:
         st.markdown("<h2 style='margin:0; font-weight: 700;'>Dasbor Rekomendasi Pemupukan</h2>", unsafe_allow_html=True)
@@ -619,78 +416,82 @@ elif st.session_state.page == 'fitur_pupuk':
         if st.button("Kembali ke Beranda"):
             st.session_state.page = 'beranda'
             st.rerun()
-
+            
     st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 15px 0 25px 0;'>", unsafe_allow_html=True)
-
+    
     model, scaler_X, scaler_y = load_ann_model()
-
+    
     if model is None:
         st.warning("File model belum terbaca dengan sempurna. Pastikan model_ann.keras, scaler_X.pkl, dan scaler_y.pkl sudah berada di folder proyek VS Code Anda.")
     else:
         st.markdown("<h4>Input Parameter Sensor Lapangan</h4>", unsafe_allow_html=True)
         st.write("Silakan masukkan hasil pengukuran dari 7 parameter sensor tanah di bawah ini:")
-
+        
         with st.form("form_prediksi_manual"):
             c1, c2, c3 = st.columns(3)
-            ec    = c1.number_input("EC (Kelistrikan Tanah)",   value=0.0, step=0.1)
-            n_s   = c2.number_input("N (Nilai Sensor)",          value=0.0, step=0.1)
-            p_s   = c3.number_input("P (Nilai Sensor)",          value=0.0, step=0.1)
-
-            k_s   = c1.number_input("K (Nilai Sensor)",          value=0.0, step=0.1)
-            ph    = c2.number_input("pH Tanah Aktual",           value=7.0, step=0.1)
-            moist = c3.number_input("Kelembaban (Moisture %)",   value=0.0, step=0.1)
-
-            temp  = c1.number_input("Suhu Dalam Tanah (°C)",     value=20.0, step=0.1)
-
+            ec = c1.number_input("EC (Kelistrikan Tanah)", value=0.0, step=0.1)
+            n_s = c2.number_input("N (Nilai Sensor)", value=0.0, step=0.1)
+            p_s = c3.number_input("P (Nilai Sensor)", value=0.0, step=0.1)
+            
+            k_s = c1.number_input("K (Nilai Sensor)", value=0.0, step=0.1)
+            ph = c2.number_input("pH Tanah Aktual", value=7.0, step=0.1)
+            moist = c3.number_input("Kelembaban (Moisture %)", value=0.0, step=0.1)
+            
+            temp = c1.number_input("Suhu Dalam Tanah (°C)", value=20.0, step=0.1)
+            
             submit_button = st.form_submit_button("Lakukan Model Kalibrasi")
-
+            
         if submit_button:
             with st.spinner("Memproses Model Kalibrasi..."):
+                # Menyelaraskan tipe data murni float32 (persis seperti sistem TensorFlow di Colab)
                 input_df = pd.DataFrame(
                     [[ec, n_s, p_s, k_s, ph, moist, temp]],
                     columns=["EC_S", "N_S", "P_S", "K_S", "PH_S", "Moist_S", "Temp_D_S"]
                 ).astype('float32')
-
-                X_log    = np.log1p(input_df)
+                
+                # Menjalankan prapemrosesan log1p dan RobustScaler asli
+                X_log = np.log1p(input_df)
                 X_scaled = scaler_X.transform(X_log)
-
+                
+                # Membaca matriks keluaran berdimensi 3 output saja (N, P, K)
                 y_pred_scaled = model.predict(X_scaled)
-                y_pred_log    = scaler_y.inverse_transform(y_pred_scaled)
-                y_pred        = np.expm1(y_pred_log)[0]
-
+                
+                # Melakukan inverse transform dan inverse log
+                y_pred_log = scaler_y.inverse_transform(y_pred_scaled)
+                y_pred = np.expm1(y_pred_log)[0]
+                
+                # Menyimpan nilai continu asli hara laboratorium (mg/100g)
                 raw_n, raw_p, raw_k = y_pred[0], y_pred[1], y_pred[2]
-
-            st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 25px 0;'>", unsafe_allow_html=True)
-            st.markdown("<h4>Hasil Estimasi Kandungan Hara Laboratorium Kontinu</h4>", unsafe_allow_html=True)
-
-            col_n, col_p, col_k = st.columns(3)
-            col_n.metric("Estimasi N (Nitrogen)", f"{raw_n:.2f} mg/100g")
-            col_p.metric("Estimasi P (Fosfor)",   f"{raw_p:.2f} mg/100g")
-            col_k.metric("Estimasi K (Kalium)",   f"{raw_k:.2f} mg/100g")
-
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("<h4>Analisis & Rekomendasi Pemupukan Kentang</h4>", unsafe_allow_html=True)
-
-            kat_n = klasifikasi_n(raw_n)
-            st.markdown(
-                f"<div class='box-info'><strong>Nitrogen (N) &mdash; {kat_n.upper()}</strong><br>"
-                f"{saran_n(kat_n)}<br><em>Tindakan:</em> {langkah_n(kat_n)}</div>",
-                unsafe_allow_html=True
-            )
-            st.markdown("<br>", unsafe_allow_html=True)
-
-            kat_p = klasifikasi_p(raw_p)
-            st.markdown(
-                f"<div class='box-info'><strong>Fosfor (P) &mdash; {kat_p.upper()}</strong><br>"
-                f"{saran_p(kat_p)}<br><em>Tindakan:</em> {langkah_p(kat_p)}</div>",
-                unsafe_allow_html=True
-            )
-            st.markdown("<br>", unsafe_allow_html=True)
-
-            kat_k = klasifikasi_k(raw_k)
-            st.markdown(
-                f"<div class='box-info'><strong>Kalium (K) &mdash; {kat_k.upper()}</strong><br>"
-                f"{saran_k(kat_k)}<br><em>Tindakan:</em> {langkah_k(kat_k)}</div>",
-                unsafe_allow_html=True
-            )
-            st.markdown("<br>", unsafe_allow_html=True)
+                
+                st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 25px 0;'>", unsafe_allow_html=True)
+                st.markdown("<h4>Hasil Estimasi Kandungan Hara Laboratorium Kontinu</h4>", unsafe_allow_html=True)
+                
+                # Menampilkan output dengan presisi seragam 2 angka desimal
+                col_n, col_p, col_k = st.columns(3)
+                col_n.metric("Estimasi N (Nitrogen)", f"{raw_n:.2f} mg/100g")
+                col_p.metric("Estimasi P (Fosfor)", f"{raw_p:.2f} mg/100g")
+                col_k.metric("Estimasi K (Kalium)", f"{raw_k:.2f} mg/100g")
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("<h4>Analisis & Rekomendasi Pemupukan Kentang</h4>", unsafe_allow_html=True)
+                
+                # 1. Tampilan Nitrogen
+                kat_n = klasifikasi_n(raw_n)
+                st.info(f"Status Kandungan Nitrogen (N): {kat_n.upper()}")
+                st.write(f"Saran Sistem: {saran_n(kat_n)}")
+                st.write(f"Langkah Tindakan: {langkah_n(kat_n)}")
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # 2. Tampilan Fosfor
+                kat_p = klasifikasi_p(raw_p)
+                st.info(f"Status Kandungan Fosfor (P): {kat_p.upper()}")
+                st.write(f"Saran Sistem: {saran_p(kat_p)}")
+                st.write(f"Langkah Tindakan: {langkah_p(kat_p)}")
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # 3. Tampilan Kalium
+                kat_k = klasifikasi_k(raw_k)
+                st.info(f"Status Kandungan Kalium (K): {kat_k.upper()}")
+                st.write(f"Saran Sistem: {saran_k(kat_k)}")
+                st.write(f"Langkah Tindakan: {langkah_k(kat_k)}")
+                st.markdown("<br>", unsafe_allow_html=True)
