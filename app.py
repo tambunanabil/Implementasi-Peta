@@ -132,6 +132,24 @@ st.markdown("""
     color: #fde9b5;
     font-size: 0.95em;
 }
+.box-success {
+    background-color: rgba(0, 80, 40, 0.35);
+    border-left: 4px solid #2ecc71;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 8px 0;
+    color: #b8f5d0;
+    font-size: 0.95em;
+}
+.box-warn {
+    background-color: rgba(120, 80, 0, 0.35);
+    border-left: 4px solid #e0a020;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 8px 0;
+    color: #fde8a0;
+    font-size: 0.95em;
+}
 .box-error {
     background-color: rgba(100, 20, 0, 0.35);
     border-left: 4px solid #c94a3a;
@@ -257,25 +275,28 @@ def prediksi_kesesuaian(ec, n, p, k, ph, moist, t_d, elevasi, model_kes, scaler_
 # 5. FUNGSI KLASIFIKASI & REKOMENDASI PUPUK
 # ==========================================
 def klasifikasi_n(val):
-    if val < 2054:      return 'Sangat Rendah'
-    elif val <= 3512:   return 'Rendah'
-    elif val <= 4971:   return 'Sedang'
-    elif val <= 6429:   return 'Tinggi'
-    else:               return 'Sangat Tinggi'
+    # Range data lab N: 595.8 - 7887 mg/100g, dibagi 5 kategori merata
+    if val < 2054:   return 'Sangat Rendah'
+    elif val < 3512: return 'Rendah'
+    elif val < 4971: return 'Sedang'
+    elif val < 6429: return 'Tinggi'
+    else:            return 'Sangat Tinggi'
 
 def klasifikasi_p(val):
-    if val < 175:       return 'Sangat Rendah'
-    elif val <= 350:    return 'Rendah'
-    elif val <= 525:    return 'Sedang'
-    elif val <= 700:    return 'Tinggi'
-    else:               return 'Sangat Tinggi'
+    # Range data lab P: 0.38 - 875 mg/100g, dibagi 5 kategori merata
+    if val < 175:  return 'Sangat Rendah'
+    elif val < 350: return 'Rendah'
+    elif val < 525: return 'Sedang'
+    elif val < 700: return 'Tinggi'
+    else:           return 'Sangat Tinggi'
 
 def klasifikasi_k(val):
-    if val < 306:       return 'Sangat Rendah'
-    elif val <= 580:    return 'Rendah'
-    elif val <= 854:    return 'Sedang'
-    elif val <= 1129:   return 'Tinggi'
-    else:               return 'Sangat Tinggi'
+    # Range data lab K: 31.6 - 1403 mg/100g, dibagi 5 kategori merata
+    if val < 306:   return 'Sangat Rendah'
+    elif val < 580: return 'Rendah'
+    elif val < 854: return 'Sedang'
+    elif val < 1129: return 'Tinggi'
+    else:            return 'Sangat Tinggi'
 
 def saran_n(kat):
     if kat in ['Sangat Rendah', 'Rendah']: return 'Fase vegetatif terancam. Tanaman kentang akan kerdil.'
@@ -445,6 +466,99 @@ elif st.session_state.page == 'fitur_peta':
 
                 # Simpan elevasi ke session state untuk dipakai di form
                 st.session_state.elevasi_terklik = elevasi_satelit
+
+                # ─── SCREENING CEPAT BERBASIS ELEVASI ─────────────────
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("<h5>Skrining Awal Berdasarkan Ketinggian Lahan</h5>", unsafe_allow_html=True)
+
+                if elevasi_satelit < 1000:
+                    st.markdown(
+                        f"<div class='box-error'>"
+                        f"<span style='font-size:15px; font-weight:700;'>Ketinggian Terlalu Rendah</span><br>"
+                        f"Lokasi ini berada pada ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> "
+                        f"(di bawah 1.000 mdpl). Tanaman kentang umumnya membutuhkan ketinggian "
+                        f"minimal 1.000 mdpl agar suhu dan kelembapan udara cukup mendukung. "
+                        f"<strong>Lahan ini kemungkinan tidak cocok</strong> untuk budidaya kentang."
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
+
+                elif 1000 <= elevasi_satelit <= 1500:
+                    st.markdown(
+                        f"<div class='box-notice'>"
+                        f"<span style='font-size:15px; font-weight:700;'>Ketinggian Potensial — Perlu Cek pH</span><br>"
+                        f"Lokasi ini berada pada ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> "
+                        f"(rentang 1.000 – 1.500 mdpl). Ketinggian ini cukup menjanjikan, namun "
+                        f"kesesuaian lahan sangat bergantung pada kondisi pH tanah. "
+                        f"Masukkan nilai pH tanah Anda di bawah untuk mendapatkan estimasi awal."
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
+                    ph_input_rendah = st.number_input(
+                        "Nilai pH Tanah (hasil uji lab / alat ukur)",
+                        min_value=3.0, max_value=10.0, value=6.5, step=0.1,
+                        key="ph_screen_rendah"
+                    )
+                    if ph_input_rendah > 7.0:
+                        st.markdown(
+                            f"<div class='box-success'>"
+                            f"<span style='font-size:15px; font-weight:700;'>Berpotensi Cocok</span><br>"
+                            f"Dengan ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> dan pH tanah "
+                            f"<strong>{ph_input_rendah:.1f}</strong> (di atas 7,0), lahan Anda "
+                            f"<strong>berpotensi cocok</strong> untuk budidaya kentang. "
+                            f"Disarankan untuk memverifikasi lebih lanjut dengan uji parameter tanah lengkap."
+                            f"</div>",
+                            unsafe_allow_html=True
+                        )
+                    else:
+                        st.markdown(
+                            f"<div class='box-warn'>"
+                            f"<span style='font-size:15px; font-weight:700;'>Kurang Optimal</span><br>"
+                            f"Ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> sudah memadai, namun "
+                            f"pH tanah <strong>{ph_input_rendah:.1f}</strong> (≤ 7,0) menunjukkan kondisi "
+                            f"yang kurang ideal. Kentang tumbuh optimal pada pH di atas 7,0 di rentang "
+                            f"ketinggian ini. Pertimbangkan untuk melakukan pengapuran guna menaikkan pH tanah."
+                            f"</div>",
+                            unsafe_allow_html=True
+                        )
+
+                else:  # elevasi > 1500
+                    st.markdown(
+                        f"<div class='box-notice'>"
+                        f"<span style='font-size:15px; font-weight:700;'>Ketinggian Ideal — Perlu Cek pH</span><br>"
+                        f"Lokasi ini berada pada ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> "
+                        f"(di atas 1.500 mdpl) — rentang yang secara umum paling disukai tanaman kentang. "
+                        f"Masukkan nilai pH tanah untuk konfirmasi kesesuaian."
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
+                    ph_input_tinggi = st.number_input(
+                        "Nilai pH Tanah (hasil uji lab / alat ukur)",
+                        min_value=3.0, max_value=10.0, value=6.5, step=0.1,
+                        key="ph_screen_tinggi"
+                    )
+                    if ph_input_tinggi > 6.5:
+                        st.markdown(
+                            f"<div class='box-success'>"
+                            f"<span style='font-size:15px; font-weight:700;'>Kemungkinan Besar Cocok</span><br>"
+                            f"Dengan ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> dan pH tanah "
+                            f"<strong>{ph_input_tinggi:.1f}</strong> (di atas 6,5), kondisi dasar lahan Anda "
+                            f"<strong>kemungkinan besar mendukung</strong> budidaya kentang. "
+                            f"Lakukan analisis parameter tanah lengkap untuk hasil yang lebih akurat."
+                            f"</div>",
+                            unsafe_allow_html=True
+                        )
+                    else:
+                        st.markdown(
+                            f"<div class='box-warn'>"
+                            f"<span style='font-size:15px; font-weight:700;'>Perlu Perbaikan pH</span><br>"
+                            f"Ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> sangat mendukung, namun "
+                            f"pH tanah <strong>{ph_input_tinggi:.1f}</strong> (≤ 6,5) masih di bawah ambang "
+                            f"optimal. Lakukan pengapuran atau amandemen tanah untuk menaikkan pH sebelum "
+                            f"memulai budidaya."
+                            f"</div>",
+                            unsafe_allow_html=True
+                        )
 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown(
