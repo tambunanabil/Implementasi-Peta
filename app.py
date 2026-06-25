@@ -33,6 +33,24 @@ if 'elevasi_terklik' not in st.session_state:
     st.session_state.elevasi_terklik = None
 if 'mode_luar_jangkauan' not in st.session_state:
     st.session_state.mode_luar_jangkauan = None  # None | 'prediksi' | 'skrining'
+if 'sumber_data_npk' not in st.session_state:
+    st.session_state.sumber_data_npk = None      # None | 'sensor' | 'lab'
+if 'kalibrasi_selesai' not in st.session_state:
+    st.session_state.kalibrasi_selesai = False
+if 'kalibrasi_n' not in st.session_state:
+    st.session_state.kalibrasi_n = 0.0
+if 'kalibrasi_p' not in st.session_state:
+    st.session_state.kalibrasi_p = 0.0
+if 'kalibrasi_k' not in st.session_state:
+    st.session_state.kalibrasi_k = 0.0
+if 'kalibrasi_ec' not in st.session_state:
+    st.session_state.kalibrasi_ec = 0.0
+if 'kalibrasi_ph' not in st.session_state:
+    st.session_state.kalibrasi_ph = 7.0
+if 'kalibrasi_moist' not in st.session_state:
+    st.session_state.kalibrasi_moist = 0.0
+if 'kalibrasi_suhu' not in st.session_state:
+    st.session_state.kalibrasi_suhu = 20.0
 
 # ==========================================
 # 2. CSS: GLASSMORPHISM & TATA LETAK TERPUSAT
@@ -438,6 +456,8 @@ elif st.session_state.page == 'fitur_peta':
                 st.session_state.clicked_lon  = lon_klik
                 st.session_state.show_kes_form = False  # reset form saat titik baru diklik
                 st.session_state.mode_luar_jangkauan = None
+                st.session_state.sumber_data_npk = None
+                st.session_state.kalibrasi_selesai = False
                 st.rerun()
 
     # ─── BAGIAN HASIL EVALUASI ───────────────────────────────────
@@ -497,16 +517,52 @@ elif st.session_state.page == 'fitur_peta':
                 # ─── LANGKAH 2A: MODE PREDIKSI ANN ───────────────────
                 elif st.session_state.mode_luar_jangkauan == 'prediksi':
                     st.markdown("<br>", unsafe_allow_html=True)
-                    st.markdown(
-                        "<div class='box-info'><strong>Prediksi Kesesuaian Lahan via Model ANN</strong><br>"
-                        "Masukkan 8 parameter sensor tanah berikut untuk mendapatkan estimasi kesesuaian "
-                        "lahan di koordinat ini.</div>",
-                        unsafe_allow_html=True
-                    )
-                    if st.button("← Kembali ke Pilihan Awal", key="btn_kembali_prediksi"):
-                        st.session_state.mode_luar_jangkauan = None
-                        st.session_state.show_kes_form = False
-                        st.rerun()
+
+                    # Langkah 2A-i: pilih sumber data NPK
+                    if st.session_state.sumber_data_npk is None:
+                        st.markdown(
+                            "<div class='box-info'>"
+                            "<span style='font-size:15px; font-weight:700;'>Data N, P, K Anda dari mana?</span><br>"
+                            "Nilai unsur hara tanah (Nitrogen, Fosfor, Kalium) bisa diperoleh dari dua sumber. "
+                            "Pilih sesuai dengan yang Anda miliki:"
+                            "</div>",
+                            unsafe_allow_html=True
+                        )
+                        st.markdown("<br>", unsafe_allow_html=True)
+                        col_s, col_l = st.columns(2)
+                        with col_s:
+                            st.markdown(
+                                "<div style='background:rgba(255,255,255,0.05); border-radius:10px; "
+                                "padding:14px 16px; margin-bottom:10px; color:rgba(255,255,255,0.8); font-size:0.9em;'>"
+                                "<strong>Dari Alat Sensor / Alat Ukur Tanah</strong><br>"
+                                "Cocok jika Anda punya alat ukur tanah portabel yang biasa dipakai di ladang. "
+                                "Sistem akan mengolah data sensor dulu sebelum menentukan kesesuaian lahan."
+                                "</div>",
+                                unsafe_allow_html=True
+                            )
+                            if st.button("Pakai Data Sensor", use_container_width=True, key="btn_npk_sensor"):
+                                st.session_state.sumber_data_npk = 'sensor'
+                                st.session_state.show_kes_form = True
+                                st.rerun()
+                        with col_l:
+                            st.markdown(
+                                "<div style='background:rgba(255,255,255,0.05); border-radius:10px; "
+                                "padding:14px 16px; margin-bottom:10px; color:rgba(255,255,255,0.8); font-size:0.9em;'>"
+                                "<strong>Dari Hasil Uji Laboratorium</strong><br>"
+                                "Cocok jika Anda sudah punya hasil uji tanah dari laboratorium pertanian "
+                                "atau instansi terkait. Data lab lebih presisi dan langsung bisa digunakan."
+                                "</div>",
+                                unsafe_allow_html=True
+                            )
+                            if st.button("Pakai Data Hasil Lab", use_container_width=True, key="btn_npk_lab"):
+                                st.session_state.sumber_data_npk = 'lab'
+                                st.session_state.show_kes_form = True
+                                st.rerun()
+                        st.markdown("<br>", unsafe_allow_html=True)
+                        if st.button("← Kembali ke Pilihan Awal", key="btn_kembali_prediksi"):
+                            st.session_state.mode_luar_jangkauan = None
+                            st.session_state.show_kes_form = False
+                            st.rerun()
 
                 # ─── LANGKAH 2B: MODE SKRINING ELEVASI + pH ──────────
                 elif st.session_state.mode_luar_jangkauan == 'skrining':
@@ -649,44 +705,138 @@ elif st.session_state.page == 'fitur_peta':
                         st.rerun()
 
 
-                # ─── FORM INPUT 8 PARAMETER ──────────────────────────
-                if st.session_state.show_kes_form:
+                # ─── FORM INPUT: SENSOR ATAU LAB ────────────────
+                if st.session_state.show_kes_form and st.session_state.sumber_data_npk is not None:
                     model_kes, scaler_kes = load_kesesuaian_model()
 
                     if model_kes is None:
                         st.markdown(
-                            "<div class='box-error'>Model kesesuaian belum ditemukan. Pastikan file "
-                            "<strong>model_kesesuaian.keras</strong> dan <strong>scaler_kesesuaian.save</strong> "
-                            "sudah berada di folder proyek.</div>",
+                            "<div class='box-error'>File model belum ditemukan di folder proyek. "
+                            "Pastikan file <strong>model_kesesuaian.keras</strong> dan "
+                            "<strong>scaler_kesesuaian.save</strong> sudah ada.</div>",
                             unsafe_allow_html=True
                         )
-                    else:
-                        st.markdown("<h4>Input 8 Parameter Sensor Tanah</h4>", unsafe_allow_html=True)
-                        st.write(
-                            "Masukkan hasil pengukuran dari alat sensor tanah Anda. "
-                            "Nilai Elevasi sudah terisi otomatis dari koordinat yang diklik."
-                        )
 
-                        with st.form("form_kesesuaian_ann"):
-                            r1c1, r1c2, r1c3, r1c4 = st.columns(4)
-                            ec_in    = r1c1.number_input("EC (μS/cm)",          value=0.0, step=0.1, format="%.2f")
-                            n_in     = r1c2.number_input("N — Nitrogen Sensor", value=0.0, step=0.1, format="%.2f")
-                            p_in     = r1c3.number_input("P — Fosfor Sensor",   value=0.0, step=0.1, format="%.2f")
-                            k_in     = r1c4.number_input("K — Kalium Sensor",   value=0.0, step=0.1, format="%.2f")
-
-                            r2c1, r2c2, r2c3, r2c4 = st.columns(4)
-                            ph_in    = r2c1.number_input("pH Tanah",             value=7.0, step=0.1, format="%.2f")
-                            moist_in = r2c2.number_input("Kelembaban (%)",       value=0.0, step=0.1, format="%.2f")
-                            td_in    = r2c3.number_input("Suhu Dalam Tanah (°C)",value=20.0, step=0.1, format="%.2f")
-                            elev_in  = r2c4.number_input(
-                                "Elevasi (mdpl)",
-                                value=float(st.session_state.elevasi_terklik),
-                                step=1.0, format="%.1f"
+                    # ─── ALUR SENSOR ───────────────────────────────────
+                    elif st.session_state.sumber_data_npk == 'sensor':
+                        if not st.session_state.kalibrasi_selesai:
+                            st.markdown("<br>", unsafe_allow_html=True)
+                            st.markdown(
+                                "<div class='box-info'>"
+                                "<span style='font-size:15px; font-weight:700;'>Masukkan Hasil Bacaan Alat Ukur Tanah</span><br>"
+                                "Isi angka yang muncul di layar alat ukur untuk masing-masing parameter. "
+                                "Sistem akan mengolahnya terlebih dahulu sebelum menentukan kesesuaian lahan."
+                                "</div>",
+                                unsafe_allow_html=True
                             )
+                            with st.form("form_kalibrasi_sensor"):
+                                c1, c2, c3 = st.columns(3)
+                                ec_s    = c1.number_input("Kelistrikan Tanah (EC)",       value=0.0,  step=0.1, format="%.2f")
+                                n_s     = c2.number_input("Nitrogen – N (bacaan sensor)",  value=0.0,  step=0.1, format="%.2f")
+                                p_s     = c3.number_input("Fosfor – P (bacaan sensor)",    value=0.0,  step=0.1, format="%.2f")
+                                k_s     = c1.number_input("Kalium – K (bacaan sensor)",    value=0.0,  step=0.1, format="%.2f")
+                                ph_s    = c2.number_input("Keasaman Tanah (pH)",           value=7.0,  step=0.1, format="%.2f")
+                                moist_s = c3.number_input("Kelembaban Tanah (%)",          value=0.0,  step=0.1, format="%.2f")
+                                suhu_s  = c1.number_input("Suhu Tanah (°C)",                value=20.0, step=0.1, format="%.2f")
+                                submit_kal = st.form_submit_button("Proses Data Sensor")
+                            if submit_kal:
+                                model_kal, scaler_X, scaler_y = load_ann_model()
+                                if model_kal is None:
+                                    st.markdown(
+                                        "<div class='box-error'>File model kalibrasi belum ditemukan. "
+                                        "Pastikan <strong>model_ann.keras</strong>, <strong>scaler_X.pkl</strong>, "
+                                        "dan <strong>scaler_y.pkl</strong> sudah ada di folder proyek.</div>",
+                                        unsafe_allow_html=True
+                                    )
+                                else:
+                                    with st.spinner("Sedang mengolah data sensor..."):
+                                        input_df = pd.DataFrame(
+                                            [[ec_s, n_s, p_s, k_s, ph_s, moist_s, suhu_s]],
+                                            columns=["EC_S","N_S","P_S","K_S","PH_S","Moist_S","Temp_D_S"]
+                                        ).astype('float32')
+                                        X_log  = np.log1p(input_df)
+                                        X_sc   = scaler_X.transform(X_log)
+                                        y_pred = np.expm1(scaler_y.inverse_transform(model_kal.predict(X_sc)))[0]
+                                    st.session_state.kalibrasi_n     = float(y_pred[0])
+                                    st.session_state.kalibrasi_p     = float(y_pred[1])
+                                    st.session_state.kalibrasi_k     = float(y_pred[2])
+                                    st.session_state.kalibrasi_ec    = ec_s
+                                    st.session_state.kalibrasi_ph    = ph_s
+                                    st.session_state.kalibrasi_moist = moist_s
+                                    st.session_state.kalibrasi_suhu  = suhu_s
+                                    st.session_state.kalibrasi_selesai = True
+                                    st.rerun()
+                            if st.button("← Kembali ke Pilihan Sumber Data", key="btn_kembali_sumber"):
+                                st.session_state.sumber_data_npk = None
+                                st.session_state.show_kes_form   = False
+                                st.rerun()
+                        else:
+                            raw_n = st.session_state.kalibrasi_n
+                            raw_p = st.session_state.kalibrasi_p
+                            raw_k = st.session_state.kalibrasi_k
+                            st.markdown("<br>", unsafe_allow_html=True)
+                            st.markdown(
+                                "<div class='box-success'>"
+                                "<span style='font-size:15px; font-weight:700;'>Hasil Pengolahan Data Sensor</span><br>"
+                                f"Nitrogen (N): <strong>{raw_n:.1f} mg/100g</strong>&nbsp;|&nbsp;"
+                                f"Fosfor (P): <strong>{raw_p:.1f} mg/100g</strong>&nbsp;|&nbsp;"
+                                f"Kalium (K): <strong>{raw_k:.1f} mg/100g</strong><br>"
+                                "Nilai-nilai ini sudah diolah dari bacaan sensor dan siap digunakan."
+                                "</div>",
+                                unsafe_allow_html=True
+                            )
+                            st.markdown("<br>", unsafe_allow_html=True)
+                            st.markdown(
+                                "<div class='box-info'>"
+                                "<span style='font-size:15px; font-weight:700;'>Periksa dan Lengkapi Data</span><br>"
+                                "Nilai N, P, K sudah terisi otomatis. Periksa nilai lainnya, "
+                                "lalu klik 'Cek Kesesuaian Lahan'."
+                                "</div>",
+                                unsafe_allow_html=True
+                            )
+                            with st.form("form_kesesuaian_sensor"):
+                                r1c1, r1c2, r1c3, r1c4 = st.columns(4)
+                                ec_in    = r1c1.number_input("Kelistrikan Tanah (EC)", value=float(st.session_state.kalibrasi_ec),   step=0.1, format="%.2f")
+                                n_in     = r1c2.number_input("Nitrogen – N (mg/100g)", value=float(st.session_state.kalibrasi_n),    step=0.1, format="%.2f")
+                                p_in     = r1c3.number_input("Fosfor – P (mg/100g)",   value=float(st.session_state.kalibrasi_p),    step=0.1, format="%.2f")
+                                k_in     = r1c4.number_input("Kalium – K (mg/100g)",   value=float(st.session_state.kalibrasi_k),    step=0.1, format="%.2f")
+                                r2c1, r2c2, r2c3, r2c4 = st.columns(4)
+                                ph_in    = r2c1.number_input("Keasaman Tanah (pH)",     value=float(st.session_state.kalibrasi_ph),   step=0.1, format="%.2f")
+                                moist_in = r2c2.number_input("Kelembaban Tanah (%)",    value=float(st.session_state.kalibrasi_moist),step=0.1, format="%.2f")
+                                td_in    = r2c3.number_input("Suhu Tanah (°C)",         value=float(st.session_state.kalibrasi_suhu), step=0.1, format="%.2f")
+                                elev_in  = r2c4.number_input("Ketinggian Lahan (mdpl)", value=float(st.session_state.elevasi_terklik),step=1.0, format="%.1f")
+                                submitted_kes = st.form_submit_button("Cek Kesesuaian Lahan")
+                            if st.button("← Ulangi Pengisian Sensor", key="btn_ulang_sensor"):
+                                st.session_state.kalibrasi_selesai = False
+                                st.rerun()
 
-                            submitted_kes = st.form_submit_button("Jalankan Prediksi Kesesuaian")
-
-                        if submitted_kes:
+                    # ─── ALUR LAB ───────────────────────────────────────
+                    elif st.session_state.sumber_data_npk == 'lab':
+                        st.markdown("<br>", unsafe_allow_html=True)
+                        st.markdown(
+                            "<div class='box-info'>"
+                            "<span style='font-size:15px; font-weight:700;'>Masukkan Data Hasil Uji Laboratorium</span><br>"
+                            "Isi angka-angka yang tertera pada lembar hasil uji tanah dari laboratorium. "
+                            "Ketinggian lahan sudah terisi otomatis dari titik yang Anda pilih di peta."
+                            "</div>",
+                            unsafe_allow_html=True
+                        )
+                        with st.form("form_kesesuaian_lab"):
+                            r1c1, r1c2, r1c3, r1c4 = st.columns(4)
+                            ec_in    = r1c1.number_input("Kelistrikan Tanah (EC)", value=0.0,  step=0.1, format="%.2f")
+                            n_in     = r1c2.number_input("Nitrogen – N (mg/100g)", value=0.0,  step=0.1, format="%.2f")
+                            p_in     = r1c3.number_input("Fosfor – P (mg/100g)",   value=0.0,  step=0.1, format="%.2f")
+                            k_in     = r1c4.number_input("Kalium – K (mg/100g)",   value=0.0,  step=0.1, format="%.2f")
+                            r2c1, r2c2, r2c3, r2c4 = st.columns(4)
+                            ph_in    = r2c1.number_input("Keasaman Tanah (pH)",     value=7.0,  step=0.1, format="%.2f")
+                            moist_in = r2c2.number_input("Kelembaban Tanah (%)",    value=0.0,  step=0.1, format="%.2f")
+                            td_in    = r2c3.number_input("Suhu Tanah (°C)",         value=20.0, step=0.1, format="%.2f")
+                            elev_in  = r2c4.number_input("Ketinggian Lahan (mdpl)", value=float(st.session_state.elevasi_terklik), step=1.0, format="%.1f")
+                            submitted_kes = st.form_submit_button("Cek Kesesuaian Lahan")
+                        if st.button("← Kembali ke Pilihan Sumber Data", key="btn_kembali_lab"):
+                            st.session_state.sumber_data_npk = None
+                            st.session_state.show_kes_form   = False
+                            st.rerun()
                             with st.spinner("Model ANN sedang memproses..."):
                                 label, conf, probs_arr, warna_hasil = prediksi_kesesuaian(
                                     ec_in, n_in, p_in, k_in,
