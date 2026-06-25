@@ -817,53 +817,53 @@ elif st.session_state.page == 'fitur_peta':
                                 st.session_state.kalibrasi_suhu  = 20.0
                                 st.rerun()
 
-                        if submitted_kes:
-                            with st.spinner("Sedang memeriksa kesesuaian lahan..."):
-                                label, conf, probs_arr, warna_hasil = prediksi_kesesuaian(
-                                    ec_in, n_in, p_in, k_in,
-                                    ph_in, moist_in, td_in, elev_in,
-                                    model_kes, scaler_kes
+                            if submitted_kes:
+                                with st.spinner("Sedang memeriksa kesesuaian lahan..."):
+                                    label, conf, probs_arr, warna_hasil = prediksi_kesesuaian(
+                                        ec_in, n_in, p_in, k_in,
+                                        ph_in, moist_in, td_in, elev_in,
+                                        model_kes, scaler_kes
+                                    )
+                                st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 20px 0;'>", unsafe_allow_html=True)
+                                st.markdown("<h4>Hasil Pemeriksaan Kesesuaian Lahan</h4>", unsafe_allow_html=True)
+                                if label == 'Cocok':
+                                    st.markdown(
+                                        f"<div class='box-cocok'><strong>COCOK</strong><br>"
+                                        f"Berdasarkan data yang dimasukkan, lahan ini kemungkinan cocok untuk budidaya kentang.</div>",
+                                        unsafe_allow_html=True
+                                    )
+                                elif label == 'Netral':
+                                    st.markdown(
+                                        f"<div class='box-netral'><strong>PERLU PERBAIKAN</strong><br>"
+                                        f"Lahan masih bisa digunakan, tapi butuh perbaikan kondisi tanah terlebih dahulu.</div>",
+                                        unsafe_allow_html=True
+                                    )
+                                else:
+                                    st.markdown(
+                                        f"<div class='box-tidak'><strong>KURANG COCOK</strong><br>"
+                                        f"Kondisi lahan saat ini kurang mendukung untuk budidaya kentang.</div>",
+                                        unsafe_allow_html=True
+                                    )
+                                st.markdown("<br>", unsafe_allow_html=True)
+                                col_conf1, col_conf2, col_conf3 = st.columns(3)
+                                col_conf1.metric("Kemungkinan Tidak Cocok", f"{probs_arr[0]*100:.1f}%")
+                                col_conf2.metric("Perlu Perbaikan",         f"{probs_arr[1]*100:.1f}%")
+                                col_conf3.metric("Kemungkinan Cocok",       f"{probs_arr[2]*100:.1f}%")
+                                st.caption(
+                                    f"Keyakinan model: **{conf*100:.1f}%** · "
+                                    f"Ketinggian: {elev_in:.1f} mdpl · "
+                                    f"Koordinat: {lat_eval:.5f}, {lon_eval:.5f}"
                                 )
-                            st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 20px 0;'>", unsafe_allow_html=True)
-                            st.markdown("<h4>Hasil Pemeriksaan Kesesuaian Lahan</h4>", unsafe_allow_html=True)
-                            if label == 'Cocok':
-                                st.markdown(
-                                    f"<div class='box-cocok'><strong>COCOK</strong><br>"
-                                    f"Berdasarkan data yang dimasukkan, lahan ini kemungkinan cocok untuk budidaya kentang.</div>",
-                                    unsafe_allow_html=True
-                                )
-                            elif label == 'Netral':
-                                st.markdown(
-                                    f"<div class='box-netral'><strong>PERLU PERBAIKAN</strong><br>"
-                                    f"Lahan masih bisa digunakan, tapi butuh perbaikan kondisi tanah terlebih dahulu.</div>",
-                                    unsafe_allow_html=True
-                                )
-                            else:
-                                st.markdown(
-                                    f"<div class='box-tidak'><strong>KURANG COCOK</strong><br>"
-                                    f"Kondisi lahan saat ini kurang mendukung untuk budidaya kentang.</div>",
-                                    unsafe_allow_html=True
-                                )
-                            st.markdown("<br>", unsafe_allow_html=True)
-                            col_conf1, col_conf2, col_conf3 = st.columns(3)
-                            col_conf1.metric("Kemungkinan Tidak Cocok", f"{probs_arr[0]*100:.1f}%")
-                            col_conf2.metric("Perlu Perbaikan",         f"{probs_arr[1]*100:.1f}%")
-                            col_conf3.metric("Kemungkinan Cocok",       f"{probs_arr[2]*100:.1f}%")
-                            st.caption(
-                                f"Keyakinan model: **{conf*100:.1f}%** · "
-                                f"Ketinggian: {elev_in:.1f} mdpl · "
-                                f"Koordinat: {lat_eval:.5f}, {lon_eval:.5f}"
-                            )
-                            st.markdown("<br>", unsafe_allow_html=True)
-                            if st.button("← Isi Ulang Data", key="btn_isi_ulang_hasil"):
-                                st.session_state.kalibrasi_selesai = False
-                                st.session_state.kalibrasi_n = 0.0; st.session_state.kalibrasi_p = 0.0
-                                st.session_state.kalibrasi_k = 0.0; st.session_state.kalibrasi_ec = 0.0
-                                st.session_state.kalibrasi_ph = 7.0; st.session_state.kalibrasi_moist = 0.0
-                                st.session_state.kalibrasi_suhu = 20.0
-                                st.session_state.sumber_data_npk = None
-                                st.session_state.show_kes_form = False
-                                st.rerun()
+                                st.markdown("<br>", unsafe_allow_html=True)
+                                if st.button("← Isi Ulang Data", key="btn_isi_ulang_hasil"):
+                                    st.session_state.kalibrasi_selesai = False
+                                    st.session_state.kalibrasi_n = 0.0; st.session_state.kalibrasi_p = 0.0
+                                    st.session_state.kalibrasi_k = 0.0; st.session_state.kalibrasi_ec = 0.0
+                                    st.session_state.kalibrasi_ph = 7.0; st.session_state.kalibrasi_moist = 0.0
+                                    st.session_state.kalibrasi_suhu = 20.0
+                                    st.session_state.sumber_data_npk = None
+                                    st.session_state.show_kes_form = False
+                                    st.rerun()
 
                     # ─── ALUR LAB ──────────────────────────────────────
                     elif st.session_state.sumber_data_npk == 'lab':
