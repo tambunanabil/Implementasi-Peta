@@ -485,7 +485,7 @@ elif st.session_state.page == 'fitur_peta':
                     st.markdown("<br>", unsafe_allow_html=True)
                     col_punya, col_tidak = st.columns([1, 1])
                     with col_punya:
-                        if st.button("Ya, Saya Punya Data Pengukuran", use_container_width=True, key="btn_punya_data"):
+                        if st.button("Ya, Saya Punya Data — Lanjutkan Prediksi", use_container_width=True, key="btn_punya_data"):
                             st.session_state.mode_luar_jangkauan = 'prediksi'
                             st.session_state.show_kes_form = True
                             st.rerun()
@@ -503,6 +503,10 @@ elif st.session_state.page == 'fitur_peta':
                         "lahan di koordinat ini.</div>",
                         unsafe_allow_html=True
                     )
+                    if st.button("← Kembali ke Pilihan Awal", key="btn_kembali_prediksi"):
+                        st.session_state.mode_luar_jangkauan = None
+                        st.session_state.show_kes_form = False
+                        st.rerun()
 
                 # ─── LANGKAH 2B: MODE SKRINING ELEVASI + pH ──────────
                 elif st.session_state.mode_luar_jangkauan == 'skrining':
@@ -602,19 +606,6 @@ elif st.session_state.page == 'fitur_peta':
                         st.session_state.mode_luar_jangkauan = None
                         st.rerun()
 
-                # Tombol untuk tampilkan / sembunyikan form
-                if not st.session_state.show_kes_form:
-                    col_ya, col_tidak = st.columns([1, 1])
-                    with col_ya:
-                        if st.button("Lanjutkan Prediksi", use_container_width=True):
-                            st.session_state.show_kes_form = True
-                            st.rerun()
-                    with col_tidak:
-                        if st.button("Tutup Evaluasi", use_container_width=True):
-                            st.session_state.clicked_lat  = None
-                            st.session_state.clicked_lon  = None
-                            st.session_state.show_kes_form = False
-                            st.rerun()
 
                 # ─── FORM INPUT 8 PARAMETER ──────────────────────────
                 if st.session_state.show_kes_form:
