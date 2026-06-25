@@ -563,6 +563,27 @@ elif st.session_state.page == 'fitur_peta':
                                 f"</div>",
                                 unsafe_allow_html=True
                             )
+                        # Panduan bagi petani yang belum tahu pH
+                        st.markdown(
+                            f"<div style='margin-top:14px; padding:12px 16px; border-radius:8px; "
+                            f"background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); "
+                            f"color:rgba(255,255,255,0.65); font-size:0.88em; line-height:1.6;'>"
+                            f"<strong style='color:rgba(255,255,255,0.85);'>Belum tahu nilai pH tanah Anda?</strong><br>"
+                            f"Lokasi ini berada pada ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> "
+                            f"(rentang 1.000–1.500 mdpl). Pada rentang ini, kentang membutuhkan pH tanah "
+                            f"yang sedikit basa agar unsur hara tersedia optimal. Berikut panduan singkatnya:<br><br>"
+                            f"&bull;&nbsp; <strong>pH &gt; 7,0</strong> → Lahan <em>berpotensi cocok</em> "
+                            f"untuk budidaya kentang.<br>"
+                            f"&bull;&nbsp; <strong>pH 6,0–7,0</strong> → Lahan bersifat <em>marginal</em>, "
+                            f"perlu tindakan pengapuran untuk menaikkan pH.<br>"
+                            f"&bull;&nbsp; <strong>pH &lt; 6,0</strong> → Kondisi tanah <em>kurang mendukung</em>, "
+                            f"diperlukan perbaikan intensif sebelum tanam.<br><br>"
+                            f"Untuk mengetahui pH tanah, Anda dapat menggunakan <em>soil pH meter</em> "
+                            f"yang tersedia di toko pertanian, atau mengirimkan sampel tanah ke laboratorium "
+                            f"terdekat."
+                            f"</div>",
+                            unsafe_allow_html=True
+                        )
 
                     else:  # elevasi > 1500
                         st.markdown(
@@ -600,6 +621,27 @@ elif st.session_state.page == 'fitur_peta':
                                 f"</div>",
                                 unsafe_allow_html=True
                             )
+                        # Panduan bagi petani yang belum tahu pH
+                        st.markdown(
+                            f"<div style='margin-top:14px; padding:12px 16px; border-radius:8px; "
+                            f"background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); "
+                            f"color:rgba(255,255,255,0.65); font-size:0.88em; line-height:1.6;'>"
+                            f"<strong style='color:rgba(255,255,255,0.85);'>Belum tahu nilai pH tanah Anda?</strong><br>"
+                            f"Lokasi ini berada pada ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> "
+                            f"(di atas 1.500 mdpl) — rentang yang paling disukai tanaman kentang. "
+                            f"Pada ketinggian ini, syarat pH tanah relatif lebih longgar. "
+                            f"Berikut panduan singkatnya:<br><br>"
+                            f"&bull;&nbsp; <strong>pH &gt; 6,5</strong> → Lahan <em>kemungkinan besar cocok</em> "
+                            f"untuk budidaya kentang.<br>"
+                            f"&bull;&nbsp; <strong>pH 5,5–6,5</strong> → Lahan bersifat <em>marginal</em>, "
+                            f"masih dapat dioptimalkan dengan pengapuran ringan.<br>"
+                            f"&bull;&nbsp; <strong>pH &lt; 5,5</strong> → Kondisi tanah <em>kurang mendukung</em>, "
+                            f"diperlukan amandemen tanah sebelum mulai budidaya.<br><br>"
+                            f"Untuk mengetahui pH tanah, gunakan <em>soil pH meter</em> dari toko pertanian "
+                            f"atau kirimkan sampel tanah ke laboratorium analisis tanah terdekat."
+                            f"</div>",
+                            unsafe_allow_html=True
+                        )
 
                     st.markdown("<br>", unsafe_allow_html=True)
                     if st.button("← Kembali ke Pilihan Awal", key="btn_kembali_skrining"):
