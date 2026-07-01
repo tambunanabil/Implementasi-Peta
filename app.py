@@ -396,7 +396,24 @@ elif st.session_state.page == 'fitur_peta':
     with col_input:
         st.markdown("<h4>Parameter Analisis</h4>", unsafe_allow_html=True)
         radius_km = st.slider("Radius Batas Toleransi (Km)", 1.0, 15.0, 3.0, 0.5)
-        ph_manual = st.number_input("Input Data pH Lokal (Opsional)", 0.0, 14.0, 0.0, 0.1)
+
+        st.markdown("<hr style='border-color: rgba(255,255,255,0.12); margin: 14px 0 10px 0;'>", unsafe_allow_html=True)
+        st.markdown(
+            "<span style='font-size:13px; font-weight:600; color:rgba(255,255,255,0.75);'>"
+            "📍 Masukkan Koordinat Lokasi</span>",
+            unsafe_allow_html=True
+        )
+        st.caption("Isi koordinat jika tidak ingin klik peta. Klik tombol untuk menandai titik.")
+        input_lat = st.number_input("Latitude",  value=st.session_state.clicked_lat  if st.session_state.clicked_lat  else -7.2106, format="%.6f", step=0.0001)
+        input_lon = st.number_input("Longitude", value=st.session_state.clicked_lon if st.session_state.clicked_lon else 109.8941, format="%.6f", step=0.0001)
+        if st.button("📌 Tandai Titik di Peta", use_container_width=True):
+            st.session_state.clicked_lat          = input_lat
+            st.session_state.clicked_lon          = input_lon
+            st.session_state.show_kes_form        = False
+            st.session_state.mode_luar_jangkauan  = None
+            st.session_state.sumber_data_npk      = None
+            st.session_state.kalibrasi_selesai    = False
+            st.rerun()
 
         st.markdown("<br>", unsafe_allow_html=True)
         if df_data.empty:
