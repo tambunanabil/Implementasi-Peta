@@ -962,14 +962,123 @@ elif st.session_state.page == 'fitur_peta':
                 elev_min, elev_max = df_terfilter['Elevasi'].min(), df_terfilter['Elevasi'].max()
 
                 if elevasi_satelit < (elev_min - 50.0) or elevasi_satelit > (elev_max + 50.0):
+                    # ── DECISION TREE: elevasi di luar rentang ──────────────────────
                     st.markdown(
-                        f"<div class='box-tidak'><strong>TIDAK COCOK</strong><br>"
-                        f"Ketinggian lokasi berada di luar batas toleransi wilayah terdekat "
-                        f"(Rentang Acuan: {elev_min:.0f} &ndash; {elev_max:.0f} mdpl).</div>",
+                        f"<div class='box-notice'>"
+                        f"<strong>Ketinggian Di Luar Rentang Acuan</strong><br>"
+                        f"Titik uji berada pada ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong>, "
+                        f"di luar rentang titik acuan terdekat ({elev_min:.0f}–{elev_max:.0f} mdpl). "
+                        f"Sistem menganalisis dominansi kesesuaian lahan dari titik acuan sekitar &hellip;</div>",
                         unsafe_allow_html=True
                     )
-                else:
-                    hitung_suara = df_terfilter['Status'].str.lower().value_counts()
+                    st.markdown("<br>", unsafe_allow_html=True)
+
+                    # Hitung distribusi kategori titik acuan
+                    vc_luar = df_terfilter['Status'].str.lower().value_counts()
+                    total_luar    = vc_luar.sum()
+                    jml_cocok     = vc_luar.get('cocok', 0)
+                    jml_netral    = vc_luar.get('netral', 0)
+                    jml_tidak     = vc_luar.get('tidak cocok', 0)
+                    kategori_ada  = (jml_cocok > 0) + (jml_netral > 0) + (jml_tidak > 0)
+
+                    # Kasus 1 — absolut semua sama
+                    if jml_cocok == total_luar:
+                        st.markdown(
+                            "<div class='box-cocok'><strong>COCOK — BERDASARKAN TITIK ACUAN SEKITAR</strong><br>"
+                            "Seluruh titik acuan dalam radius menunjukkan kondisi <strong>Cocok</strong>. "
+                            "Meskipun ketinggian sedikit berbeda, dominansi kuat ini mengindikasikan "
+                            "lahan berpotensi cocok untuk budidaya kentang.</div>",
+                            unsafe_allow_html=True
+                        )
+                    elif jml_tidak == total_luar:
+                        st.markdown(
+                            "<div class='box-tidak'><strong>TIDAK COCOK — BERDASARKAN TITIK ACUAN SEKITAR</strong><br>"
+                            "Seluruh titik acuan dalam radius menunjukkan kondisi <strong>Tidak Cocok</strong>. "
+                            "Zona sekitar tidak mendukung budidaya kentang.</div>",
+                            unsafe_allow_html=True
+                        )
+                    elif jml_netral == total_luar:
+                        st.markdown(
+                            "<div class='box-netral'><strong>NETRAL — BERDASARKAN TITIK ACUAN SEKITAR</strong><br>"
+                            "Seluruh titik acuan dalam radius menunjukkan kondisi <strong>Netral</strong>. "
+                            "Lahan memerlukan perbaikan kondisi tanah sebelum dapat digunakan.</div>",
+                            unsafe_allow_html=True
+                        )
+
+                    # Kasus 2 — ada satu yang dominan jelas (> 50%)
+                    elif kategori_ada > 1:
+                        suara_terbanyak = vc_luar.idxmax()
+                        pct_dominan     = vc_luar.iloc[0] / total_luar * 100
+
+                        if pct_dominan > 50.0:
+                            # Ada yang dominan
+                            if suara_terbanyak == 'cocok':
+                                st.markdown(
+                                    f"<div class='box-cocok'><strong>COCOK — DOMINAN TITIK ACUAN</strong><br>"
+                                    f"{jml_cocok} dari {total_luar} titik acuan ({pct_dominan:.0f}%) berkategori Cocok. "
+                                    f"Lahan berpotensi cocok untuk budidaya kentang.</div>",
+                                    unsafe_allow_html=True
+                                )
+                            elif suara_terbanyak == 'netral':
+                                st.markdown(
+                                    f"<div class='box-netral'><strong>NETRAL — DOMINAN TITIK ACUAN</strong><br>"
+                                    f"{jml_netral} dari {total_luar} titik acuan ({pct_dominan:.0f}%) berkategori Netral. "
+                                    f"Perlu perbaikan kondisi tanah sebelum lahan dapat digunakan.</div>",
+                                    unsafe_allow_html=True
+                                )
+                            else:
+                                st.markdown(
+                                    f"<div class='box-tidak'><strong>TIDAK COCOK — DOMINAN TITIK ACUAN</strong><br>"
+                                    f"{jml_tidak} dari {total_luar} titik acuan ({pct_dominan:.0f}%) berkategori Tidak Cocok. "
+                                    f"Zona sekitar tidak mendukung budidaya kentang.</div>",
+                                    unsafe_allow_html=True
+                                )
+                        else:
+                            # Tidak ada yang dominan — fallback ke skrining elevasi + pH
+                            st.markdown(
+                                f"<div class='box-notice'>"
+                                f"<strong>Hasil Titik Acuan Tidak Menunjukkan Pola Dominan</strong><br>"
+                                f"Distribusi kategori titik acuan: Cocok={jml_cocok}, Netral={jml_netral}, Tidak Cocok={jml_tidak}. "
+                                f"Tidak ada yang dominan (&gt;50%). Sistem menggunakan "
+                                f"<strong>skrining ketinggian &amp; pH</strong> sebagai dasar estimasi.</div>",
+                                unsafe_allow_html=True
+                            )
+                            st.markdown("<br>", unsafe_allow_html=True)
+                            st.markdown("<h5>Skrining Berdasarkan Ketinggian &amp; pH</h5>", unsafe_allow_html=True)
+                            if elevasi_satelit < 1000:
+                                st.markdown(
+                                    f"<div class='box-error'><strong>Ketinggian Terlalu Rendah</strong><br>"
+                                    f"Ketinggian {elevasi_satelit:.0f} mdpl di bawah ambang 1.000 mdpl. "
+                                    f"Lahan kemungkinan <strong>tidak cocok</strong>.</div>",
+                                    unsafe_allow_html=True
+                                )
+                            elif 1000 <= elevasi_satelit <= 1500:
+                                st.markdown(
+                                    f"<div class='box-notice'><strong>Ketinggian Potensial — Perlu Cek pH</strong><br>"
+                                    f"Ketinggian {elevasi_satelit:.0f} mdpl (1.000–1.500 mdpl). Kesesuaian bergantung pada pH.</div>",
+                                    unsafe_allow_html=True
+                                )
+                                ph_fb = st.number_input("Nilai pH Tanah", min_value=3.0, max_value=10.0, value=6.5, step=0.1, key="ph_fb_luar_elev")
+                                if ph_fb > 7.0:
+                                    st.markdown(f"<div class='box-cocok'>pH {ph_fb:.1f} (&gt;7,0) — kondisi cenderung <strong>Cocok</strong>.</div>", unsafe_allow_html=True)
+                                elif 5.5 <= ph_fb <= 7.0:
+                                    st.markdown(f"<div class='box-netral'>pH {ph_fb:.1f} (5,5–7,0) — kondisi <strong>Netral / Marginal</strong>. Perlu pengapuran.</div>", unsafe_allow_html=True)
+                                else:
+                                    st.markdown(f"<div class='box-tidak'>pH {ph_fb:.1f} (&lt;5,5) — kondisi <strong>Tidak Cocok</strong>. Perlu amandemen tanah.</div>", unsafe_allow_html=True)
+                            else:
+                                st.markdown(
+                                    f"<div class='box-success'><strong>Ketinggian Ideal — Perlu Cek pH</strong><br>"
+                                    f"Ketinggian {elevasi_satelit:.0f} mdpl (&gt;1.500 mdpl) sangat mendukung kentang. Cek pH untuk konfirmasi.</div>",
+                                    unsafe_allow_html=True
+                                )
+                                ph_fb2 = st.number_input("Nilai pH Tanah", min_value=3.0, max_value=10.0, value=6.5, step=0.1, key="ph_fb2_luar_elev")
+                                if ph_fb2 > 6.5:
+                                    st.markdown(f"<div class='box-cocok'>pH {ph_fb2:.1f} (&gt;6,5) — kondisi <strong>Cocok</strong>.</div>", unsafe_allow_html=True)
+                                elif 5.5 <= ph_fb2 <= 6.5:
+                                    st.markdown(f"<div class='box-netral'>pH {ph_fb2:.1f} (5,5–6,5) — kondisi <strong>Netral / Marginal</strong>.</div>", unsafe_allow_html=True)
+                                else:
+                                    st.markdown(f"<div class='box-tidak'>pH {ph_fb2:.1f} (&lt;5,5) — kondisi <strong>Tidak Cocok</strong>.</div>", unsafe_allow_html=True)
+
 
                     if len(hitung_suara) > 1 and hitung_suara.iloc[0] == hitung_suara.iloc[1]:
                         st.markdown(
