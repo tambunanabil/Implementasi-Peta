@@ -355,8 +355,8 @@ df_data = load_data_peta()
 # ==========================================
 if st.session_state.page == 'beranda':
     st.markdown("<br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align: center; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.6);'>Sistem Informasi Spasial Lahan Kentang</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; font-size: 18px; color: #e2e2e2;'>Platform Prediksi Kesesuaian Lahan Berbasis Agroklimat & Sebaran Hara</p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.6);'>Cek Kecocokan Lahan Saya Kentang</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 18px; color: #e2e2e2;'>Bantu petani tahu apakah lahannya cocok untuk ditanami kentang</p>", unsafe_allow_html=True)
     st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 40px 0;'>", unsafe_allow_html=True)
 
     col_kiri, col_btn1, col_btn2, col_kanan = st.columns([1, 1.5, 1.5, 1])
@@ -380,7 +380,7 @@ elif st.session_state.page == 'fitur_peta':
 
     col_judul, col_kembali = st.columns([4, 1])
     with col_judul:
-        st.markdown("<h2 style='margin:0; font-weight: 700;'>Pemetaan Kesesuaian Lahan</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='margin:0; font-weight: 700;'>Cek Kecocokan Lahan Saya</h2>", unsafe_allow_html=True)
     with col_kembali:
         if st.button("Kembali ke Beranda"):
             st.session_state.page = 'beranda'
@@ -394,8 +394,8 @@ elif st.session_state.page == 'fitur_peta':
     col_input, col_peta = st.columns([1.2, 2.8])
 
     with col_input:
-        st.markdown("<h4>Parameter Analisis</h4>", unsafe_allow_html=True)
-        radius_km = st.slider("Radius Batas Toleransi (Km)", 1.0, 15.0, 3.0, 0.5)
+        st.markdown("<h4>Pengaturan Peta</h4>", unsafe_allow_html=True)
+        radius_km = st.slider("Jarak Pencarian Data Acuan (Km)", 1.0, 15.0, 3.0, 0.5)
 
         st.markdown("<hr style='border-color: rgba(255,255,255,0.12); margin: 14px 0 10px 0;'>", unsafe_allow_html=True)
         st.markdown(
@@ -403,7 +403,7 @@ elif st.session_state.page == 'fitur_peta':
             "📍 Masukkan Koordinat Lokasi</span>",
             unsafe_allow_html=True
         )
-        st.caption("Isi koordinat jika tidak ingin klik peta. Klik tombol untuk menandai titik.")
+        st.caption("Tahu koordinat lokasinya? Ketik di sini, lalu klik tombol di bawah.")
         input_lat = st.number_input("Latitude",  value=st.session_state.clicked_lat  if st.session_state.clicked_lat  else -7.2106, format="%.6f", step=0.0001)
         input_lon = st.number_input("Longitude", value=st.session_state.clicked_lon if st.session_state.clicked_lon else 109.8941, format="%.6f", step=0.0001)
         if st.button("📌 Tandai Titik di Peta", use_container_width=True):
@@ -417,7 +417,7 @@ elif st.session_state.page == 'fitur_peta':
 
         st.markdown("<br>", unsafe_allow_html=True)
         if df_data.empty:
-            st.markdown("<div class='box-error'>Data lahan tidak terdeteksi di server.</div>", unsafe_allow_html=True)
+            st.markdown("<div class='box-error'>Data lahan belum tersedia. Hubungi pengelola sistem.</div>", unsafe_allow_html=True)
 
     with col_peta:
         m = folium.Map(
@@ -483,7 +483,7 @@ elif st.session_state.page == 'fitur_peta':
         lat_eval = st.session_state.clicked_lat
         lon_eval = st.session_state.clicked_lon
 
-        with st.spinner("Memproses analisis spasial wilayah..."):
+        with st.spinner("Sedang mencari data di sekitar lokasi..."):
             elevasi_satelit = get_elevation(lat_eval, lon_eval)
 
         if not df_data.empty and elevasi_satelit is not None:
@@ -493,14 +493,14 @@ elif st.session_state.page == 'fitur_peta':
             )
             df_terfilter = df_working[df_working['Jarak_Km'] <= radius_km].copy()
 
-            st.markdown("<h4>Hasil Evaluasi Lokasi</h4>", unsafe_allow_html=True)
-            st.write(f"Koordinat Titik Uji: {lat_eval:.5f}, {lon_eval:.5f} | Ketinggian Tanah: {elevasi_satelit:.1f} mdpl")
+            st.markdown("<h4>Hasil Pengecekan Lokasi</h4>", unsafe_allow_html=True)
+            st.write(f"Lokasi yang dicek: {lat_eval:.5f}, {lon_eval:.5f} | Ketinggian lahan: {elevasi_satelit:.1f} mdpl")
 
             # ─── KONDISI: TITIK DI LUAR JANGKAUAN DATA ACUAN ───────
             if df_terfilter.empty:
                 st.markdown(
-                    f"<div class='box-notice'>Lokasi ini berada di luar jangkauan data acuan historis "
-                    f"&mdash; tidak ada titik referensi dalam radius {radius_km} km.</div>",
+                    f"<div class='box-notice'>Belum ada data lahan di dekat lokasi ini — "
+                    f"tidak ada titik acuan dalam radius {radius_km} km.</div>",
                     unsafe_allow_html=True
                 )
 
@@ -511,23 +511,23 @@ elif st.session_state.page == 'fitur_peta':
                     st.markdown("<br>", unsafe_allow_html=True)
                     st.markdown(
                         "<div class='box-info'>"
-                        "<span style='font-size:15px; font-weight:700;'>Apakah Anda memiliki data pengukuran tanah?</span><br>"
-                        "Jika Anda memiliki data hasil pengukuran sensor atau uji laboratorium (pH, N, P, K, "
-                        "kelembapan, suhu, dll.), sistem dapat menjalankan <strong>model prediksi ANN</strong> "
-                        "untuk hasil yang lebih akurat. Jika tidak, sistem akan memberikan "
-                        "<strong>estimasi awal</strong> berdasarkan ketinggian dan pH lahan."
+                        "<span style='font-size:15px; font-weight:700;'>Punya data hasil ukur tanah?</span><br>"
+                        "Kalau punya data dari alat ukur atau hasil lab (pH, N, P, K, "
+                        "kelembaban, suhu), sistem bisa kasih hasil yang lebih tepat. "
+                        "Kalau tidak punya, sistem tetap bisa beri "
+                        "<strong>perkiraan awal</strong> dari ketinggian lahan."
                         "</div>",
                         unsafe_allow_html=True
                     )
                     st.markdown("<br>", unsafe_allow_html=True)
                     col_punya, col_tidak = st.columns([1, 1])
                     with col_punya:
-                        if st.button("Ya, Saya Punya Data — Lanjutkan Prediksi", use_container_width=True, key="btn_punya_data"):
+                        if st.button("Ya, saya punya data ukur tanah", use_container_width=True, key="btn_punya_data"):
                             st.session_state.mode_luar_jangkauan = 'prediksi'
                             st.session_state.show_kes_form = True
                             st.rerun()
                     with col_tidak:
-                        if st.button("Tidak, Saya Tidak Punya Data", use_container_width=True, key="btn_tidak_data"):
+                        if st.button("Tidak punya, pakai perkiraan saja", use_container_width=True, key="btn_tidak_data"):
                             st.session_state.mode_luar_jangkauan = 'skrining'
                             st.rerun()
 
@@ -539,9 +539,9 @@ elif st.session_state.page == 'fitur_peta':
                     if st.session_state.sumber_data_npk is None:
                         st.markdown(
                             "<div class='box-info'>"
-                            "<span style='font-size:15px; font-weight:700;'>Data N, P, K Anda dari mana?</span><br>"
-                            "Nilai unsur hara tanah (Nitrogen, Fosfor, Kalium) bisa diperoleh dari dua sumber. "
-                            "Pilih sesuai dengan yang Anda miliki:"
+                            "<span style='font-size:15px; font-weight:700;'>Data tanah Anda dari mana?</span><br>"
+                            ""
+                            "Pilih sesuai yang Anda punya:"
                             "</div>",
                             unsafe_allow_html=True
                         )
@@ -551,13 +551,13 @@ elif st.session_state.page == 'fitur_peta':
                             st.markdown(
                                 "<div style='background:rgba(255,255,255,0.05); border-radius:10px; "
                                 "padding:14px 16px; margin-bottom:10px; color:rgba(255,255,255,0.8); font-size:0.9em;'>"
-                                "<strong>Dari Alat Sensor / Alat Ukur Tanah</strong><br>"
-                                "Cocok jika Anda punya alat ukur tanah portabel yang biasa dipakai di ladang. "
-                                "Sistem akan mengolah data sensor dulu sebelum menentukan kesesuaian lahan."
+                                "<strong>Dari Alat Ukur Tanah (Sensor)</strong><br>"
+                                "Punya alat ukur tanah? "
+                                "Masukkan angkanya dan sistem olah dulu."
                                 "</div>",
                                 unsafe_allow_html=True
                             )
-                            if st.button("Pakai Data Sensor", use_container_width=True, key="btn_npk_sensor"):
+                            if st.button("Dari Alat Sensor", use_container_width=True, key="btn_npk_sensor"):
                                 st.session_state.sumber_data_npk = 'sensor'
                                 st.session_state.show_kes_form = True
                                 st.rerun()
@@ -565,18 +565,18 @@ elif st.session_state.page == 'fitur_peta':
                             st.markdown(
                                 "<div style='background:rgba(255,255,255,0.05); border-radius:10px; "
                                 "padding:14px 16px; margin-bottom:10px; color:rgba(255,255,255,0.8); font-size:0.9em;'>"
-                                "<strong>Dari Hasil Uji Laboratorium</strong><br>"
-                                "Cocok jika Anda sudah punya hasil uji tanah dari laboratorium pertanian "
-                                "atau instansi terkait. Data lab lebih presisi dan langsung bisa digunakan."
+                                "<strong>Dari Hasil Laboratorium</strong><br>"
+                                "Sudah ada hasil uji lab? "
+                                "Langsung masukkan angkanya di sini."
                                 "</div>",
                                 unsafe_allow_html=True
                             )
-                            if st.button("Pakai Data Hasil Lab", use_container_width=True, key="btn_npk_lab"):
+                            if st.button("Dari Hasil Lab", use_container_width=True, key="btn_npk_lab"):
                                 st.session_state.sumber_data_npk = 'lab'
                                 st.session_state.show_kes_form = True
                                 st.rerun()
                         st.markdown("<br>", unsafe_allow_html=True)
-                        if st.button("← Kembali ke Pilihan Awal", key="btn_kembali_prediksi"):
+                        if st.button("← Kembali", key="btn_kembali_prediksi"):
                             st.session_state.mode_luar_jangkauan = None
                             st.session_state.show_kes_form = False
                             st.rerun()
@@ -584,16 +584,16 @@ elif st.session_state.page == 'fitur_peta':
                 # ─── LANGKAH 2B: MODE SKRINING ELEVASI + pH ──────────
                 elif st.session_state.mode_luar_jangkauan == 'skrining':
                     st.markdown("<br>", unsafe_allow_html=True)
-                    st.markdown("<h5>Skrining Awal Berdasarkan Ketinggian Lahan</h5>", unsafe_allow_html=True)
+                    st.markdown("<h5>Perkiraan Awal dari Ketinggian Lahan</h5>", unsafe_allow_html=True)
 
                     if elevasi_satelit < 1000:
                         st.markdown(
                             f"<div class='box-error'>"
                             f"<span style='font-size:15px; font-weight:700;'>Ketinggian Terlalu Rendah</span><br>"
-                            f"Lokasi ini berada pada ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> "
-                            f"(di bawah 1.000 mdpl). Tanaman kentang umumnya membutuhkan ketinggian "
-                            f"minimal 1.000 mdpl agar suhu dan kelembapan udara cukup mendukung. "
-                            f"<strong>Lahan ini kemungkinan tidak cocok</strong> untuk budidaya kentang."
+                            f"Lokasi ini ada di ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> "
+                            f"(di bawah 1.000 mdpl). Kentang butuh minimal 1.000 mdpl "
+                            f"supaya suhu dan udaranya cocok. "
+                            f"<strong>Lahan ini kemungkinan kurang cocok</strong> untuk kentang."
                             f"</div>",
                             unsafe_allow_html=True
                         )
@@ -601,16 +601,16 @@ elif st.session_state.page == 'fitur_peta':
                     elif 1000 <= elevasi_satelit <= 1500:
                         st.markdown(
                             f"<div class='box-notice'>"
-                            f"<span style='font-size:15px; font-weight:700;'>Ketinggian Potensial — Perlu Cek pH</span><br>"
-                            f"Lokasi ini berada pada ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> "
-                            f"(rentang 1.000–1.500 mdpl). Ketinggian ini cukup menjanjikan, namun "
-                            f"kesesuaian lahan bergantung pada pH tanah. "
-                            f"Masukkan nilai pH tanah Anda untuk mendapatkan estimasi awal."
+                            f"<span style='font-size:15px; font-weight:700;'>Ketinggian Lumayan — Perlu Tahu pH Tanah</span><br>"
+                            f"Lokasi ini ada di ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> "
+                            f"(antara 1.000–1.500 mdpl). Ketinggiannya lumayan, tapi kesesuaian "
+                            f"lahan juga tergantung pH. "
+                            f"Masukkan nilai pH untuk perkiraan awal."
                             f"</div>",
                             unsafe_allow_html=True
                         )
                         ph_input_rendah = st.number_input(
-                            "Nilai pH Tanah (hasil uji lab / alat ukur)",
+                            "Berapa pH tanah di lokasi ini?",
                             min_value=3.0, max_value=10.0, value=6.5, step=0.1,
                             key="ph_screen_rendah"
                         )
@@ -642,7 +642,7 @@ elif st.session_state.page == 'fitur_peta':
                             f"background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); "
                             f"color:rgba(255,255,255,0.65); font-size:0.88em; line-height:1.6;'>"
                             f"<strong style='color:rgba(255,255,255,0.85);'>Belum tahu nilai pH tanah Anda?</strong><br>"
-                            f"Lokasi ini berada pada ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> "
+                            f"Lokasi ini ada di ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> "
                             f"(rentang 1.000–1.500 mdpl). Pada rentang ini, kentang membutuhkan pH tanah "
                             f"yang sedikit basa agar unsur hara tersedia optimal. Berikut panduan singkatnya:<br><br>"
                             f"&bull;&nbsp; <strong>pH &gt; 7,0</strong> → Lahan <em>berpotensi cocok</em> "
@@ -662,14 +662,14 @@ elif st.session_state.page == 'fitur_peta':
                         st.markdown(
                             f"<div class='box-notice'>"
                             f"<span style='font-size:15px; font-weight:700;'>Ketinggian Ideal — Perlu Cek pH</span><br>"
-                            f"Lokasi ini berada pada ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> "
+                            f"Lokasi ini ada di ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> "
                             f"(di atas 1.500 mdpl) — rentang yang paling disukai tanaman kentang. "
                             f"Masukkan nilai pH tanah untuk konfirmasi kesesuaian."
                             f"</div>",
                             unsafe_allow_html=True
                         )
                         ph_input_tinggi = st.number_input(
-                            "Nilai pH Tanah (hasil uji lab / alat ukur)",
+                            "Berapa pH tanah di lokasi ini?",
                             min_value=3.0, max_value=10.0, value=6.5, step=0.1,
                             key="ph_screen_tinggi"
                         )
@@ -687,7 +687,7 @@ elif st.session_state.page == 'fitur_peta':
                         else:
                             st.markdown(
                                 f"<div class='box-warn'>"
-                                f"<span style='font-size:15px; font-weight:700;'>Perlu Perbaikan pH</span><br>"
+                                f"<span style='font-size:15px; font-weight:700;'>Perlu Diperbaiki pH</span><br>"
                                 f"Ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> sangat mendukung, namun "
                                 f"pH <strong>{ph_input_tinggi:.1f}</strong> (≤ 6,5) masih di bawah ambang optimal. "
                                 f"Lakukan pengapuran atau amandemen tanah untuk menaikkan pH sebelum memulai budidaya."
@@ -700,7 +700,7 @@ elif st.session_state.page == 'fitur_peta':
                             f"background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); "
                             f"color:rgba(255,255,255,0.65); font-size:0.88em; line-height:1.6;'>"
                             f"<strong style='color:rgba(255,255,255,0.85);'>Belum tahu nilai pH tanah Anda?</strong><br>"
-                            f"Lokasi ini berada pada ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> "
+                            f"Lokasi ini ada di ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong> "
                             f"(di atas 1.500 mdpl) — rentang yang paling disukai tanaman kentang. "
                             f"Pada ketinggian ini, syarat pH tanah relatif lebih longgar. "
                             f"Berikut panduan singkatnya:<br><br>"
@@ -717,7 +717,7 @@ elif st.session_state.page == 'fitur_peta':
                         )
 
                     st.markdown("<br>", unsafe_allow_html=True)
-                    if st.button("← Kembali ke Pilihan Awal", key="btn_kembali_skrining"):
+                    if st.button("← Kembali", key="btn_kembali_skrining"):
                         st.session_state.mode_luar_jangkauan = None
                         st.rerun()
 
@@ -740,33 +740,33 @@ elif st.session_state.page == 'fitur_peta':
                             st.markdown("<br>", unsafe_allow_html=True)
                             st.markdown(
                                 "<div class='box-info'>"
-                                "<span style='font-size:15px; font-weight:700;'>Masukkan Hasil Bacaan Alat Ukur Tanah</span><br>"
-                                "Isi angka yang muncul di layar alat ukur untuk masing-masing parameter. "
-                                "Sistem akan mengolahnya terlebih dahulu sebelum menentukan kesesuaian lahan."
+                                "<span style='font-size:15px; font-weight:700;'>Isi Hasil Bacaan Alat Ukur</span><br>"
+                                "Ketik angka yang tertera di alat ukur Anda. "
+                                "Sistem olah dulu sebelum tentukan hasilnya."
                                 "</div>",
                                 unsafe_allow_html=True
                             )
                             with st.form("form_kalibrasi_sensor"):
                                 c1, c2, c3 = st.columns(3)
                                 ec_s    = c1.number_input("Kelistrikan Tanah (EC)",       value=0.0,  step=0.1, format="%.2f")
-                                n_s     = c2.number_input("Nitrogen – N (bacaan sensor)",  value=0.0,  step=0.1, format="%.2f")
-                                p_s     = c3.number_input("Fosfor – P (bacaan sensor)",    value=0.0,  step=0.1, format="%.2f")
-                                k_s     = c1.number_input("Kalium – K (bacaan sensor)",    value=0.0,  step=0.1, format="%.2f")
+                                n_s     = c2.number_input("Nitrogen – N",  value=0.0,  step=0.1, format="%.2f")
+                                p_s     = c3.number_input("Fosfor – P",    value=0.0,  step=0.1, format="%.2f")
+                                k_s     = c1.number_input("Kalium – K",    value=0.0,  step=0.1, format="%.2f")
                                 ph_s    = c2.number_input("Keasaman Tanah (pH)",           value=7.0,  step=0.1, format="%.2f")
                                 moist_s = c3.number_input("Kelembaban Tanah (%)",          value=0.0,  step=0.1, format="%.2f")
                                 suhu_s  = c1.number_input("Suhu Tanah (°C)",                value=20.0, step=0.1, format="%.2f")
-                                submit_kal = st.form_submit_button("Proses Data Sensor")
+                                submit_kal = st.form_submit_button("Olah Data Sensor")
                             if submit_kal:
                                 model_kal, scaler_X, scaler_y = load_ann_model()
                                 if model_kal is None:
                                     st.markdown(
-                                        "<div class='box-error'>File model kalibrasi belum ditemukan. "
-                                        "Pastikan <strong>model_ann.keras</strong>, <strong>scaler_X.pkl</strong>, "
-                                        "dan <strong>scaler_y.pkl</strong> sudah ada di folder proyek.</div>",
+                                        "<div class='box-error'>File model belum tersedia. Hubungi pengelola sistem."
+                                        ""
+                                        "</div>",
                                         unsafe_allow_html=True
                                     )
                                 else:
-                                    with st.spinner("Sedang mengolah data sensor..."):
+                                    with st.spinner("Sedang mengolah data..."):
                                         input_df = pd.DataFrame(
                                             [[ec_s, n_s, p_s, k_s, ph_s, moist_s, suhu_s]],
                                             columns=["EC_S","N_S","P_S","K_S","PH_S","Moist_S","Temp_D_S"]
@@ -783,7 +783,7 @@ elif st.session_state.page == 'fitur_peta':
                                     st.session_state.kalibrasi_suhu  = suhu_s
                                     st.session_state.kalibrasi_selesai = True
                                     st.rerun()
-                            if st.button("← Kembali ke Pilihan Sumber Data", key="btn_kembali_sumber"):
+                            if st.button("← Ganti Sumber Data", key="btn_kembali_sumber"):
                                 st.session_state.sumber_data_npk = None
                                 st.session_state.show_kes_form   = False
                                 st.rerun()
@@ -794,36 +794,36 @@ elif st.session_state.page == 'fitur_peta':
                             st.markdown("<br>", unsafe_allow_html=True)
                             st.markdown(
                                 "<div class='box-success'>"
-                                "<span style='font-size:15px; font-weight:700;'>Hasil Pengolahan Data Sensor</span><br>"
+                                "<span style='font-size:15px; font-weight:700;'>Data Sudah Diolah</span><br>"
                                 f"Nitrogen (N): <strong>{raw_n:.1f} mg/100g</strong>&nbsp;|&nbsp;"
                                 f"Fosfor (P): <strong>{raw_p:.1f} mg/100g</strong>&nbsp;|&nbsp;"
                                 f"Kalium (K): <strong>{raw_k:.1f} mg/100g</strong><br>"
-                                "Nilai-nilai ini sudah diolah dari bacaan sensor dan siap digunakan."
+                                "Angka-angka ini sudah diproses dan siap dipakai."
                                 "</div>",
                                 unsafe_allow_html=True
                             )
                             st.markdown("<br>", unsafe_allow_html=True)
                             st.markdown(
                                 "<div class='box-info'>"
-                                "<span style='font-size:15px; font-weight:700;'>Periksa dan Lengkapi Data</span><br>"
-                                "Nilai N, P, K sudah terisi otomatis. Periksa nilai lainnya, "
-                                "lalu klik 'Cek Kesesuaian Lahan'."
+                                "<span style='font-size:15px; font-weight:700;'>Periksa Data Anda</span><br>"
+                                "Nilai N, P, K sudah otomatis terisi dari sensor. Cek sisanya, "
+                                "lalu klik 'Cek Kecocokan Lahan Saya'."
                                 "</div>",
                                 unsafe_allow_html=True
                             )
                             with st.form("form_kesesuaian_sensor"):
                                 r1c1, r1c2, r1c3, r1c4 = st.columns(4)
                                 ec_in    = r1c1.number_input("Kelistrikan Tanah (EC)", value=float(st.session_state.kalibrasi_ec),   step=0.1, format="%.2f")
-                                n_in     = r1c2.number_input("Nitrogen – N (mg/100g)", value=float(st.session_state.kalibrasi_n),    step=0.1, format="%.2f")
-                                p_in     = r1c3.number_input("Fosfor – P (mg/100g)",   value=float(st.session_state.kalibrasi_p),    step=0.1, format="%.2f")
-                                k_in     = r1c4.number_input("Kalium – K (mg/100g)",   value=float(st.session_state.kalibrasi_k),    step=0.1, format="%.2f")
+                                n_in     = r1c2.number_input("Nitrogen – N", value=float(st.session_state.kalibrasi_n),    step=0.1, format="%.2f")
+                                p_in     = r1c3.number_input("Fosfor – P",   value=float(st.session_state.kalibrasi_p),    step=0.1, format="%.2f")
+                                k_in     = r1c4.number_input("Kalium – K",   value=float(st.session_state.kalibrasi_k),    step=0.1, format="%.2f")
                                 r2c1, r2c2, r2c3, r2c4 = st.columns(4)
                                 ph_in    = r2c1.number_input("Keasaman Tanah (pH)",     value=float(st.session_state.kalibrasi_ph),   step=0.1, format="%.2f")
                                 moist_in = r2c2.number_input("Kelembaban Tanah (%)",    value=float(st.session_state.kalibrasi_moist),step=0.1, format="%.2f")
                                 td_in    = r2c3.number_input("Suhu Tanah (°C)",         value=float(st.session_state.kalibrasi_suhu), step=0.1, format="%.2f")
                                 elev_in  = r2c4.number_input("Ketinggian Lahan (mdpl)", value=float(st.session_state.elevasi_terklik),step=1.0, format="%.1f")
-                                submitted_kes = st.form_submit_button("Cek Kesesuaian Lahan")
-                            if st.button("← Ulangi Pengisian Sensor (Reset ke Awal)", key="btn_ulang_sensor"):
+                                submitted_kes = st.form_submit_button("Cek Kecocokan Lahan Saya")
+                            if st.button("← Ulangi dari Awal", key="btn_ulang_sensor"):
                                 st.session_state.kalibrasi_selesai = False
                                 st.session_state.kalibrasi_n     = 0.0
                                 st.session_state.kalibrasi_p     = 0.0
@@ -835,44 +835,44 @@ elif st.session_state.page == 'fitur_peta':
                                 st.rerun()
 
                             if submitted_kes:
-                                with st.spinner("Sedang memeriksa kesesuaian lahan..."):
+                                with st.spinner("Sedang menganalisis..."):
                                     label, conf, probs_arr, warna_hasil = prediksi_kesesuaian(
                                         ec_in, n_in, p_in, k_in,
                                         ph_in, moist_in, td_in, elev_in,
                                         model_kes, scaler_kes
                                     )
                                 st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 20px 0;'>", unsafe_allow_html=True)
-                                st.markdown("<h4>Hasil Pemeriksaan Kesesuaian Lahan</h4>", unsafe_allow_html=True)
+                                st.markdown("<h4>Hasil Pengecekan Lahan</h4>", unsafe_allow_html=True)
                                 if label == 'Cocok':
                                     st.markdown(
-                                        f"<div class='box-cocok'><strong>COCOK</strong><br>"
-                                        f"Berdasarkan data yang dimasukkan, lahan ini kemungkinan cocok untuk budidaya kentang.</div>",
+                                        f"<div class='box-cocok'><strong>COCOK UNTUK KENTANG ✓</strong><br>"
+                                        f"Berdasarkan data yang dimasukkan, lahan ini tampak cocok untuk ditanami kentang.</div>",
                                         unsafe_allow_html=True
                                     )
                                 elif label == 'Netral':
                                     st.markdown(
-                                        f"<div class='box-netral'><strong>PERLU PERBAIKAN</strong><br>"
-                                        f"Lahan masih bisa digunakan, tapi butuh perbaikan kondisi tanah terlebih dahulu.</div>",
+                                        f"<div class='box-netral'><strong>BISA DIPAKAI, PERLU DIPERBAIKI DULU</strong><br>"
+                                        f"Lahan ini masih bisa dipakai untuk kentang, asal kondisi tanahnya diperbaiki dulu.</div>",
                                         unsafe_allow_html=True
                                     )
                                 else:
                                     st.markdown(
-                                        f"<div class='box-tidak'><strong>KURANG COCOK</strong><br>"
-                                        f"Kondisi lahan saat ini kurang mendukung untuk budidaya kentang.</div>",
+                                        f"<div class='box-tidak'><strong>KURANG COCOK UNTUK KENTANG</strong><br>"
+                                        f"Kondisi lahan saat ini belum mendukung untuk ditanami kentang.</div>",
                                         unsafe_allow_html=True
                                     )
                                 st.markdown("<br>", unsafe_allow_html=True)
                                 col_conf1, col_conf2, col_conf3 = st.columns(3)
                                 col_conf1.metric("Kemungkinan Tidak Cocok", f"{probs_arr[0]*100:.1f}%")
-                                col_conf2.metric("Perlu Perbaikan",         f"{probs_arr[1]*100:.1f}%")
+                                col_conf2.metric("Perlu Diperbaiki",         f"{probs_arr[1]*100:.1f}%")
                                 col_conf3.metric("Kemungkinan Cocok",       f"{probs_arr[2]*100:.1f}%")
                                 st.caption(
-                                    f"Keyakinan model: **{conf*100:.1f}%** · "
-                                    f"Ketinggian: {elev_in:.1f} mdpl · "
+                                    f"Tingkat kepastian: **{conf*100:.1f}%** · "
+                                    f"Ketinggian lahan: {elev_in:.1f} mdpl · "
                                     f"Koordinat: {lat_eval:.5f}, {lon_eval:.5f}"
                                 )
                                 st.markdown("<br>", unsafe_allow_html=True)
-                                if st.button("← Isi Ulang Data", key="btn_isi_ulang_hasil"):
+                                if st.button("← Isi Ulang", key="btn_isi_ulang_hasil"):
                                     st.session_state.kalibrasi_selesai = False
                                     st.session_state.kalibrasi_n = 0.0; st.session_state.kalibrasi_p = 0.0
                                     st.session_state.kalibrasi_k = 0.0; st.session_state.kalibrasi_ec = 0.0
@@ -887,68 +887,68 @@ elif st.session_state.page == 'fitur_peta':
                         st.markdown("<br>", unsafe_allow_html=True)
                         st.markdown(
                             "<div class='box-info'>"
-                            "<span style='font-size:15px; font-weight:700;'>Masukkan Data Hasil Uji Laboratorium</span><br>"
-                            "Isi angka-angka yang tertera pada lembar hasil uji tanah dari laboratorium. "
-                            "Ketinggian lahan sudah terisi otomatis dari titik yang Anda pilih di peta."
+                            "<span style='font-size:15px; font-weight:700;'>Masukkan Angka dari Hasil Lab</span><br>"
+                            "Ketik angka dari lembar hasil lab Anda. "
+                            "Ketinggian sudah otomatis terisi dari peta."
                             "</div>",
                             unsafe_allow_html=True
                         )
                         with st.form("form_kesesuaian_lab"):
                             r1c1, r1c2, r1c3, r1c4 = st.columns(4)
                             ec_in    = r1c1.number_input("Kelistrikan Tanah (EC)", value=0.0,  step=0.1, format="%.2f")
-                            n_in     = r1c2.number_input("Nitrogen – N (mg/100g)", value=0.0,  step=0.1, format="%.2f")
-                            p_in     = r1c3.number_input("Fosfor – P (mg/100g)",   value=0.0,  step=0.1, format="%.2f")
-                            k_in     = r1c4.number_input("Kalium – K (mg/100g)",   value=0.0,  step=0.1, format="%.2f")
+                            n_in     = r1c2.number_input("Nitrogen – N", value=0.0,  step=0.1, format="%.2f")
+                            p_in     = r1c3.number_input("Fosfor – P",   value=0.0,  step=0.1, format="%.2f")
+                            k_in     = r1c4.number_input("Kalium – K",   value=0.0,  step=0.1, format="%.2f")
                             r2c1, r2c2, r2c3, r2c4 = st.columns(4)
                             ph_in    = r2c1.number_input("Keasaman Tanah (pH)",     value=7.0,  step=0.1, format="%.2f")
                             moist_in = r2c2.number_input("Kelembaban Tanah (%)",    value=0.0,  step=0.1, format="%.2f")
                             td_in    = r2c3.number_input("Suhu Tanah (°C)",         value=20.0, step=0.1, format="%.2f")
                             elev_in  = r2c4.number_input("Ketinggian Lahan (mdpl)", value=float(st.session_state.elevasi_terklik) if st.session_state.elevasi_terklik else 0.0, step=1.0, format="%.1f")
-                            submitted_kes = st.form_submit_button("Cek Kesesuaian Lahan")
-                        if st.button("← Kembali ke Pilihan Sumber Data", key="btn_kembali_lab"):
+                            submitted_kes = st.form_submit_button("Cek Kecocokan Lahan Saya")
+                        if st.button("← Ganti Sumber Data", key="btn_kembali_lab"):
                             st.session_state.sumber_data_npk = None
                             st.session_state.show_kes_form   = False
                             st.rerun()
 
                         if submitted_kes:
-                            with st.spinner("Sedang memeriksa kesesuaian lahan..."):
+                            with st.spinner("Sedang menganalisis..."):
                                 label, conf, probs_arr, warna_hasil = prediksi_kesesuaian(
                                     ec_in, n_in, p_in, k_in,
                                     ph_in, moist_in, td_in, elev_in,
                                     model_kes, scaler_kes
                                 )
                             st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 20px 0;'>", unsafe_allow_html=True)
-                            st.markdown("<h4>Hasil Pemeriksaan Kesesuaian Lahan</h4>", unsafe_allow_html=True)
+                            st.markdown("<h4>Hasil Pengecekan Lahan</h4>", unsafe_allow_html=True)
                             if label == 'Cocok':
                                 st.markdown(
                                     f"<div class='box-cocok'><strong>COCOK</strong><br>"
-                                    f"Berdasarkan data yang dimasukkan, lahan ini kemungkinan cocok untuk budidaya kentang.</div>",
+                                    f"Berdasarkan data yang dimasukkan, lahan ini tampak cocok untuk ditanami kentang.</div>",
                                     unsafe_allow_html=True
                                 )
                             elif label == 'Netral':
                                 st.markdown(
                                     f"<div class='box-netral'><strong>PERLU PERBAIKAN</strong><br>"
-                                    f"Lahan masih bisa digunakan, tapi butuh perbaikan kondisi tanah terlebih dahulu.</div>",
+                                    f"Lahan ini masih bisa dipakai untuk kentang, asal kondisi tanahnya diperbaiki dulu.</div>",
                                     unsafe_allow_html=True
                                 )
                             else:
                                 st.markdown(
                                     f"<div class='box-tidak'><strong>KURANG COCOK</strong><br>"
-                                    f"Kondisi lahan saat ini kurang mendukung untuk budidaya kentang.</div>",
+                                    f"Kondisi lahan saat ini belum mendukung untuk ditanami kentang.</div>",
                                     unsafe_allow_html=True
                                 )
                             st.markdown("<br>", unsafe_allow_html=True)
                             col_conf1, col_conf2, col_conf3 = st.columns(3)
                             col_conf1.metric("Kemungkinan Tidak Cocok", f"{probs_arr[0]*100:.1f}%")
-                            col_conf2.metric("Perlu Perbaikan",         f"{probs_arr[1]*100:.1f}%")
+                            col_conf2.metric("Perlu Diperbaiki",         f"{probs_arr[1]*100:.1f}%")
                             col_conf3.metric("Kemungkinan Cocok",       f"{probs_arr[2]*100:.1f}%")
                             st.caption(
-                                f"Keyakinan model: **{conf*100:.1f}%** · "
-                                f"Ketinggian: {elev_in:.1f} mdpl · "
+                                f"Tingkat kepastian: **{conf*100:.1f}%** · "
+                                f"Ketinggian lahan: {elev_in:.1f} mdpl · "
                                 f"Koordinat: {lat_eval:.5f}, {lon_eval:.5f}"
                             )
                             st.markdown("<br>", unsafe_allow_html=True)
-                            if st.button("← Isi Ulang Data", key="btn_isi_ulang_hasil"):
+                            if st.button("← Isi Ulang", key="btn_isi_ulang_hasil"):
                                 st.session_state.kalibrasi_selesai = False
                                 st.session_state.kalibrasi_n = 0.0; st.session_state.kalibrasi_p = 0.0
                                 st.session_state.kalibrasi_k = 0.0; st.session_state.kalibrasi_ec = 0.0
@@ -965,10 +965,10 @@ elif st.session_state.page == 'fitur_peta':
                     # ── DECISION TREE: elevasi di luar rentang ──────────────────────
                     st.markdown(
                         f"<div class='box-notice'>"
-                        f"<strong>Ketinggian Di Luar Rentang Acuan</strong><br>"
+                        f"<strong>Ketinggian Sedikit Berbeda dari Data Sekitar</strong><br>"
                         f"Titik uji berada pada ketinggian <strong>{elevasi_satelit:.0f} mdpl</strong>, "
-                        f"di luar rentang titik acuan terdekat ({elev_min:.0f}–{elev_max:.0f} mdpl). "
-                        f"Sistem menganalisis dominansi kesesuaian lahan dari titik acuan sekitar &hellip;</div>",
+                        f"sedikit di luar rentang data lahan terdekat ({elev_min:.0f}–{elev_max:.0f} mdpl). "
+                        f"Kami lihat dulu kondisi lahan di sekitar lokasi Anda&hellip;</div>",
                         unsafe_allow_html=True
                     )
                     st.markdown("<br>", unsafe_allow_html=True)
@@ -984,24 +984,24 @@ elif st.session_state.page == 'fitur_peta':
                     # Kasus 1 — absolut semua sama
                     if jml_cocok == total_luar:
                         st.markdown(
-                            "<div class='box-cocok'><strong>COCOK — BERDASARKAN TITIK ACUAN SEKITAR</strong><br>"
-                            "Seluruh titik acuan dalam radius menunjukkan kondisi <strong>Cocok</strong>. "
-                            "Meskipun ketinggian sedikit berbeda, dominansi kuat ini mengindikasikan "
-                            "lahan berpotensi cocok untuk budidaya kentang.</div>",
+                            "<div class='box-cocok'><strong>COCOK UNTUK KENTANG ✓</strong><br>"
+                            "Semua lahan di sekitar lokasi ini masuk kategori Cocok. "
+                            "Meski ketinggiannya sedikit beda, "
+                            "lahan Anda kemungkinan besar cocok untuk ditanami kentang.</div>",
                             unsafe_allow_html=True
                         )
                     elif jml_tidak == total_luar:
                         st.markdown(
-                            "<div class='box-tidak'><strong>TIDAK COCOK — BERDASARKAN TITIK ACUAN SEKITAR</strong><br>"
-                            "Seluruh titik acuan dalam radius menunjukkan kondisi <strong>Tidak Cocok</strong>. "
-                            "Zona sekitar tidak mendukung budidaya kentang.</div>",
+                            "<div class='box-tidak'><strong>KURANG COCOK UNTUK KENTANG</strong><br>"
+                            "Semua lahan di sekitar lokasi ini tidak cocok untuk kentang. "
+                            "Lahan di zona ini kurang mendukung untuk kentang.</div>",
                             unsafe_allow_html=True
                         )
                     elif jml_netral == total_luar:
                         st.markdown(
-                            "<div class='box-netral'><strong>NETRAL — BERDASARKAN TITIK ACUAN SEKITAR</strong><br>"
-                            "Seluruh titik acuan dalam radius menunjukkan kondisi <strong>Netral</strong>. "
-                            "Lahan memerlukan perbaikan kondisi tanah sebelum dapat digunakan.</div>",
+                            "<div class='box-netral'><strong>BISA DIPAKAI, TAPI PERLU DIPERBAIKI</strong><br>"
+                            "Semua lahan di sekitar perlu perbaikan dulu "
+                            "sebelum bisa ditanami kentang.</div>",
                             unsafe_allow_html=True
                         )
 
@@ -1014,74 +1014,74 @@ elif st.session_state.page == 'fitur_peta':
                             # Ada yang dominan
                             if suara_terbanyak == 'cocok':
                                 st.markdown(
-                                    f"<div class='box-cocok'><strong>COCOK — DOMINAN TITIK ACUAN</strong><br>"
+                                    f"<div class='box-cocok'><strong>COCOK UNTUK KENTANG ✓</strong><br>"
                                     f"{jml_cocok} dari {total_luar} titik acuan ({pct_dominan:.0f}%) berkategori Cocok. "
-                                    f"Lahan berpotensi cocok untuk budidaya kentang.</div>",
+                                    f"Lahan Anda kemungkinan besar cocok untuk ditanami kentang.</div>",
                                     unsafe_allow_html=True
                                 )
                             elif suara_terbanyak == 'netral':
                                 st.markdown(
-                                    f"<div class='box-netral'><strong>NETRAL — DOMINAN TITIK ACUAN</strong><br>"
+                                    f"<div class='box-netral'><strong>BISA DIPAKAI, TAPI PERLU DIPERBAIKI</strong><br>"
                                     f"{jml_netral} dari {total_luar} titik acuan ({pct_dominan:.0f}%) berkategori Netral. "
-                                    f"Perlu perbaikan kondisi tanah sebelum lahan dapat digunakan.</div>",
+                                    f"Lahan perlu sedikit perbaikan sebelum siap ditanami kentang.</div>",
                                     unsafe_allow_html=True
                                 )
                             else:
                                 st.markdown(
-                                    f"<div class='box-tidak'><strong>TIDAK COCOK — DOMINAN TITIK ACUAN</strong><br>"
+                                    f"<div class='box-tidak'><strong>KURANG COCOK UNTUK KENTANG</strong><br>"
                                     f"{jml_tidak} dari {total_luar} titik acuan ({pct_dominan:.0f}%) berkategori Tidak Cocok. "
-                                    f"Zona sekitar tidak mendukung budidaya kentang.</div>",
+                                    f"Lahan di zona ini kurang mendukung untuk kentang.</div>",
                                     unsafe_allow_html=True
                                 )
                         else:
                             # Tidak ada yang dominan — fallback ke skrining elevasi + pH
                             st.markdown(
                                 f"<div class='box-notice'>"
-                                f"<strong>Hasil Titik Acuan Tidak Menunjukkan Pola Dominan</strong><br>"
-                                f"Distribusi kategori titik acuan: Cocok={jml_cocok}, Netral={jml_netral}, Tidak Cocok={jml_tidak}. "
-                                f"Tidak ada yang dominan (&gt;50%). Sistem menggunakan "
-                                f"<strong>skrining ketinggian &amp; pH</strong> sebagai dasar estimasi.</div>",
+                                f"<strong>Data di Sekitar Tidak Seragam</strong><br>"
+                                f"Lahan di sekitar terbagi-bagi — "
+                                f"tidak ada yang jelas dominan. Kami gunakan "
+                                f"<strong>ketinggian &amp; pH</strong> sebagai patokan.</div>",
                                 unsafe_allow_html=True
                             )
                             st.markdown("<br>", unsafe_allow_html=True)
-                            st.markdown("<h5>Skrining Berdasarkan Ketinggian &amp; pH</h5>", unsafe_allow_html=True)
+                            st.markdown("<h5>Perkiraan Berdasarkan Ketinggian &amp; pH</h5>", unsafe_allow_html=True)
                             if elevasi_satelit < 1000:
                                 st.markdown(
                                     f"<div class='box-error'><strong>Ketinggian Terlalu Rendah</strong><br>"
-                                    f"Ketinggian {elevasi_satelit:.0f} mdpl di bawah ambang 1.000 mdpl. "
-                                    f"Lahan kemungkinan <strong>tidak cocok</strong>.</div>",
+                                    f"Ketinggian {elevasi_satelit:.0f} mdpl terlalu rendah (di bawah 1.000 mdpl). "
+                                    f"Lahan kemungkinan <strong>kurang cocok</strong> untuk kentang.</div>",
                                     unsafe_allow_html=True
                                 )
                             elif 1000 <= elevasi_satelit <= 1500:
                                 st.markdown(
-                                    f"<div class='box-notice'><strong>Ketinggian Potensial — Perlu Cek pH</strong><br>"
-                                    f"Ketinggian {elevasi_satelit:.0f} mdpl (1.000–1.500 mdpl). Kesesuaian bergantung pada pH.</div>",
+                                    f"<div class='box-notice'><strong>Ketinggian Lumayan — Perlu Cek pH</strong><br>"
+                                    f"Ketinggian {elevasi_satelit:.0f} mdpl (1.000–1.500 mdpl). Kesesuaian juga tergantung pH tanah.</div>",
                                     unsafe_allow_html=True
                                 )
-                                ph_fb = st.number_input("Nilai pH Tanah", min_value=3.0, max_value=10.0, value=6.5, step=0.1, key="ph_fb_luar_elev")
+                                ph_fb = st.number_input("pH Tanah", min_value=3.0, max_value=10.0, value=6.5, step=0.1, key="ph_fb_luar_elev")
                                 if ph_fb > 7.0:
-                                    st.markdown(f"<div class='box-cocok'>pH {ph_fb:.1f} (&gt;7,0) — kondisi cenderung <strong>Cocok</strong>.</div>", unsafe_allow_html=True)
+                                    st.markdown(f"<div class='box-cocok'>pH {ph_fb:.1f} — kondisi tanah <strong>kemungkinan cocok</strong> untuk kentang.</div>", unsafe_allow_html=True)
                                 elif 5.5 <= ph_fb <= 7.0:
-                                    st.markdown(f"<div class='box-netral'>pH {ph_fb:.1f} (5,5–7,0) — kondisi <strong>Netral / Marginal</strong>. Perlu pengapuran.</div>", unsafe_allow_html=True)
+                                    st.markdown(f"<div class='box-netral'>pH {ph_fb:.1f} — kondisi <strong>marginal</strong>, perlu pengapuran ringan.</div>", unsafe_allow_html=True)
                                 else:
-                                    st.markdown(f"<div class='box-tidak'>pH {ph_fb:.1f} (&lt;5,5) — kondisi <strong>Tidak Cocok</strong>. Perlu amandemen tanah.</div>", unsafe_allow_html=True)
+                                    st.markdown(f"<div class='box-tidak'>pH {ph_fb:.1f} — kondisi <strong>kurang cocok</strong>, tanah perlu diperbaiki dulu.</div>", unsafe_allow_html=True)
                             else:
                                 st.markdown(
-                                    f"<div class='box-success'><strong>Ketinggian Ideal — Perlu Cek pH</strong><br>"
-                                    f"Ketinggian {elevasi_satelit:.0f} mdpl (&gt;1.500 mdpl) sangat mendukung kentang. Cek pH untuk konfirmasi.</div>",
+                                    f"<div class='box-success'><strong>Ketinggian Ideal — Cocok untuk Kentang</strong><br>"
+                                    f"Ketinggian {elevasi_satelit:.0f} mdpl (di atas 1.500 mdpl) — sangat baik untuk kentang. Konfirmasi lewat pH tanah.</div>",
                                     unsafe_allow_html=True
                                 )
-                                ph_fb2 = st.number_input("Nilai pH Tanah", min_value=3.0, max_value=10.0, value=6.5, step=0.1, key="ph_fb2_luar_elev")
+                                ph_fb2 = st.number_input("pH Tanah", min_value=3.0, max_value=10.0, value=6.5, step=0.1, key="ph_fb2_luar_elev")
                                 if ph_fb2 > 6.5:
-                                    st.markdown(f"<div class='box-cocok'>pH {ph_fb2:.1f} (&gt;6,5) — kondisi <strong>Cocok</strong>.</div>", unsafe_allow_html=True)
+                                    st.markdown(f"<div class='box-cocok'>pH {ph_fb2:.1f} — kondisi <strong>cocok</strong> untuk kentang.</div>", unsafe_allow_html=True)
                                 elif 5.5 <= ph_fb2 <= 6.5:
-                                    st.markdown(f"<div class='box-netral'>pH {ph_fb2:.1f} (5,5–6,5) — kondisi <strong>Netral / Marginal</strong>.</div>", unsafe_allow_html=True)
+                                    st.markdown(f"<div class='box-netral'>pH {ph_fb2:.1f} — kondisi <strong>marginal</strong>, perlu pengapuran ringan.</div>", unsafe_allow_html=True)
                                 else:
-                                    st.markdown(f"<div class='box-tidak'>pH {ph_fb2:.1f} (&lt;5,5) — kondisi <strong>Tidak Cocok</strong>.</div>", unsafe_allow_html=True)
+                                    st.markdown(f"<div class='box-tidak'>pH {ph_fb2:.1f} — kondisi <strong>kurang cocok</strong>, tanah perlu diperbaiki.</div>", unsafe_allow_html=True)
 
 
                 st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown(f"<h5>Data Ketinggian & pH dari Objek Acuan Terdekat (Radius {radius_km} Km)</h5>", unsafe_allow_html=True)
+                st.markdown(f"<h5>Data Lahan di Sekitar Lokasi Anda (Radius {radius_km} Km)</h5>", unsafe_allow_html=True)
 
                 df_tabel = df_terfilter[['Kabupaten', 'Desa', 'Elevasi', 'PH_S1', 'Status', 'Jarak_Km']].copy()
                 df_tabel['Jarak_Km'] = df_tabel['Jarak_Km'].round(2)
@@ -1093,7 +1093,7 @@ elif st.session_state.page == 'fitur_peta':
 
         else:
             st.markdown(
-                "<div class='box-error'>Gagal terhubung dengan server koordinat satelit untuk menarik data elevasi.</div>",
+                "<div class='box-error'>Tidak bisa mengambil data ketinggian saat ini. Coba lagi beberapa saat.</div>",
                 unsafe_allow_html=True
             )
 
@@ -1104,7 +1104,7 @@ elif st.session_state.page == 'fitur_pupuk':
 
     col_judul, col_kembali = st.columns([4, 1])
     with col_judul:
-        st.markdown("<h2 style='margin:0; font-weight: 700;'>Dasbor Rekomendasi Pemupukan</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='margin:0; font-weight: 700;'>Rekomendasi Pupuk untuk Lahan Kentang</h2>", unsafe_allow_html=True)
     with col_kembali:
         if st.button("Kembali ke Beranda"):
             st.session_state.page = 'beranda'
@@ -1115,10 +1115,10 @@ elif st.session_state.page == 'fitur_pupuk':
     model, scaler_X, scaler_y = load_ann_model()
 
     if model is None:
-        st.warning("File model belum terbaca dengan sempurna. Pastikan model_ann.keras, scaler_X.pkl, dan scaler_y.pkl sudah berada di folder proyek VS Code Anda.")
+        st.warning("File model belum tersedia. Hubungi pengelola sistem.")
     else:
-        st.markdown("<h4>Input Parameter Sensor Lapangan</h4>", unsafe_allow_html=True)
-        st.write("Silakan masukkan hasil pengukuran dari 7 parameter sensor tanah di bawah ini:")
+        st.markdown("<h4>Masukkan Hasil Ukur Tanah Anda</h4>", unsafe_allow_html=True)
+        st.write("Isi angka-angka dari alat ukur Anda (7 parameter), lalu klik tombol di bawah.")
 
         with st.form("form_prediksi_manual"):
             c1, c2, c3 = st.columns(3)
@@ -1132,10 +1132,10 @@ elif st.session_state.page == 'fitur_pupuk':
 
             temp  = c1.number_input("Suhu Dalam Tanah (°C)",     value=20.0, step=0.1)
 
-            submit_button = st.form_submit_button("Lakukan Model Kalibrasi")
+            submit_button = st.form_submit_button("Olah Data & Lihat Rekomendasi")
 
         if submit_button:
-            with st.spinner("Memproses Model Kalibrasi..."):
+            with st.spinner("Sedang menghitung rekomendasi pupuk..."):
                 input_df = pd.DataFrame(
                     [[ec, n_s, p_s, k_s, ph, moist, temp]],
                     columns=["EC_S", "N_S", "P_S", "K_S", "PH_S", "Moist_S", "Temp_D_S"]
