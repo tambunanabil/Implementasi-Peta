@@ -1080,33 +1080,6 @@ elif st.session_state.page == 'fitur_peta':
                                     st.markdown(f"<div class='box-tidak'>pH {ph_fb2:.1f} (&lt;5,5) — kondisi <strong>Tidak Cocok</strong>.</div>", unsafe_allow_html=True)
 
 
-                    if len(hitung_suara) > 1 and hitung_suara.iloc[0] == hitung_suara.iloc[1]:
-                        st.markdown(
-                            "<div class='box-netral'><strong>NETRAL</strong><br>"
-                            "Karakteristik data referensi di sekitar titik uji memiliki rasio yang seimbang (50:50).</div>",
-                            unsafe_allow_html=True
-                        )
-                    else:
-                        suara_dominan = hitung_suara.idxmax()
-                        if suara_dominan == 'cocok':
-                            st.markdown(
-                                "<div class='box-cocok'><strong>COCOK</strong><br>"
-                                "Mayoritas data observasi di sekitar lokasi ini menunjukkan kondisi lahan yang ideal.</div>",
-                                unsafe_allow_html=True
-                            )
-                        elif suara_dominan == 'netral':
-                            st.markdown(
-                                "<div class='box-netral'><strong>NETRAL</strong><br>"
-                                "Zonasi di sekitar lokasi didominasi oleh karakteristik lahan marginal.</div>",
-                                unsafe_allow_html=True
-                            )
-                        else:
-                            st.markdown(
-                                "<div class='box-tidak'><strong>TIDAK COCOK</strong><br>"
-                                "Mayoritas data observasi historis tidak merekomendasikan komoditas ini.</div>",
-                                unsafe_allow_html=True
-                            )
-
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown(f"<h5>Data Ketinggian & pH dari Objek Acuan Terdekat (Radius {radius_km} Km)</h5>", unsafe_allow_html=True)
 
