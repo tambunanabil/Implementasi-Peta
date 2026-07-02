@@ -1,0 +1,34 @@
+# Streamlit secrets (WAJIB tidak di-commit)
+.streamlit/secrets.toml
+
+# File model besar (upload manual ke Streamlit Cloud / server)
+*.keras
+*.save
+*.pkl
+
+# Database lokal (hanya untuk development)
+database_lahan.db
+*.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.env
+venv/
+.venv/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Data mentah (opsional, hapus baris ini jika ingin commit Excel)
+Data_Kesesuaian.xlsx
+
+# OS
+.DS_Store
+Thumbs.db

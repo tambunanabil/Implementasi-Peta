@@ -4,9 +4,11 @@ import folium
 from streamlit_folium import st_folium
 import requests
 import numpy as np
-import sqlite3
+import mysql.connector
+from mysql.connector import Error
 import joblib
 import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -188,14 +190,29 @@ st.markdown("""
 @st.cache_data(ttl=600)
 def load_data_peta():
     try:
-        conn = sqlite3.connect('database_lahan.db')
+        cfg = st.secrets["mysql"]
+        conn = mysql.connector.connect(
+            host     = cfg["host"],
+            port     = int(cfg.get("port", 3306)),
+            database = cfg["database"],
+            user     = cfg["user"],
+            password = cfg["password"],
+            connect_timeout = 10
+        )
         df = pd.read_sql_query("SELECT * FROM titik_acuan", conn)
         conn.close()
-    except:
+    except Exception as e:
+        # Fallback ke SQLite lokal (untuk development)
         try:
-            df = pd.read_excel('Data_Kesesuaian.xlsx')
+            import sqlite3
+            conn = sqlite3.connect('database_lahan.db')
+            df = pd.read_sql_query("SELECT * FROM titik_acuan", conn)
+            conn.close()
         except:
-            return pd.DataFrame()
+            try:
+                df = pd.read_excel('Data_Kesesuaian.xlsx')
+            except:
+                return pd.DataFrame()
 
     if not df.empty:
         df.columns = df.columns.str.strip()
@@ -234,13 +251,40 @@ def hitung_jarak_haversine(lat1, lon1, lat2, lon2):
 # ==========================================
 # 4. FUNGSI MODEL ANN PUPUK (FITUR 2)
 # ==========================================
+# PATCH: load model keras yang punya quantization_config
+def _patched_load(path):
+    import zipfile, json, tempfile, shutil
+    tmp = tempfile.mkdtemp()
+    try:
+        with zipfile.ZipFile(path, 'r') as z:
+            z.extractall(tmp)
+        cfg_path = os.path.join(tmp, 'config.json')
+        if os.path.exists(cfg_path):
+            with open(cfg_path, 'r') as f2:
+                cfg_str = f2.read()
+            import re
+            cfg_str = re.sub(r',?\s*"quantization_config":\s*null', '', cfg_str)
+            with open(cfg_path, 'w') as f2:
+                f2.write(cfg_str)
+        tmp_model = os.path.join(tmp, '_patched.keras')
+        with zipfile.ZipFile(tmp_model, 'w', zipfile.ZIP_DEFLATED) as z:
+            for root, dirs, files in os.walk(tmp):
+                for file in files:
+                    if '_patched.keras' in file: continue
+                    fp = os.path.join(root, file)
+                    z.write(fp, os.path.relpath(fp, tmp))
+        model = keras.models.load_model(tmp_model, compile=False)
+        return model
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+# ==========================================
 @st.cache_resource
 def load_ann_model():
     if not HAS_TF: return None, None, None
     try:
-        model = keras.models.load_model("model_ann.keras", compile=False)
-        scaler_X = joblib.load("scaler_X.pkl")
-        scaler_y = joblib.load("scaler_y.pkl")
+        model = _patched_load(os.path.join(BASE_DIR, "model_ann.keras"))
+        scaler_X = joblib.load(os.path.join(BASE_DIR, "scaler_X.pkl"))
+        scaler_y = joblib.load(os.path.join(BASE_DIR, "scaler_y.pkl"))
         return model, scaler_X, scaler_y
     except:
         return None, None, None
@@ -253,8 +297,8 @@ def load_kesesuaian_model():
     """Load model ANN kesesuaian lahan beserta scaler-nya."""
     if not HAS_TF: return None, None
     try:
-        model_kes = keras.models.load_model("model_kesesuaian.keras", compile=False)
-        scaler_kes = joblib.load("scaler_kesesuaian.save")
+        model_kes = _patched_load(os.path.join(BASE_DIR, "model_kesesuaian.keras"))
+        scaler_kes = joblib.load(os.path.join(BASE_DIR, "scaler_kesesuaian.save"))
         return model_kes, scaler_kes
     except:
         return None, None
@@ -355,7 +399,7 @@ df_data = load_data_peta()
 # ==========================================
 if st.session_state.page == 'beranda':
     st.markdown("<br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align: center; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.6);'>Cek Kecocokan Lahan Saya Kentang</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.6);'>Cek Kesesuaian Lahan Kentang Anda</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; font-size: 18px; color: #e2e2e2;'>Bantu petani tahu apakah lahannya cocok untuk ditanami kentang</p>", unsafe_allow_html=True)
     st.markdown("<hr style='border-color: rgba(255,255,255,0.15); margin: 40px 0;'>", unsafe_allow_html=True)
 
@@ -380,7 +424,7 @@ elif st.session_state.page == 'fitur_peta':
 
     col_judul, col_kembali = st.columns([4, 1])
     with col_judul:
-        st.markdown("<h2 style='margin:0; font-weight: 700;'>Cek Kecocokan Lahan Saya</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='margin:0; font-weight: 700;'>Cek Kesesuaian Lahan Kentang</h2>", unsafe_allow_html=True)
     with col_kembali:
         if st.button("Kembali ke Beranda"):
             st.session_state.page = 'beranda'
@@ -807,7 +851,7 @@ elif st.session_state.page == 'fitur_peta':
                                 "<div class='box-info'>"
                                 "<span style='font-size:15px; font-weight:700;'>Periksa Data Anda</span><br>"
                                 "Nilai N, P, K sudah otomatis terisi dari sensor. Cek sisanya, "
-                                "lalu klik 'Cek Kecocokan Lahan Saya'."
+                                "lalu klik tombol di bawah."
                                 "</div>",
                                 unsafe_allow_html=True
                             )
@@ -822,7 +866,7 @@ elif st.session_state.page == 'fitur_peta':
                                 moist_in = r2c2.number_input("Kelembaban Tanah (%)",    value=float(st.session_state.kalibrasi_moist),step=0.1, format="%.2f")
                                 td_in    = r2c3.number_input("Suhu Tanah (°C)",         value=float(st.session_state.kalibrasi_suhu), step=0.1, format="%.2f")
                                 elev_in  = r2c4.number_input("Ketinggian Lahan (mdpl)", value=float(st.session_state.elevasi_terklik),step=1.0, format="%.1f")
-                                submitted_kes = st.form_submit_button("Cek Kecocokan Lahan Saya")
+                                submitted_kes = st.form_submit_button("Cek Kesesuaian Lahan Saya")
                             if st.button("← Ulangi dari Awal", key="btn_ulang_sensor"):
                                 st.session_state.kalibrasi_selesai = False
                                 st.session_state.kalibrasi_n     = 0.0
@@ -904,7 +948,7 @@ elif st.session_state.page == 'fitur_peta':
                             moist_in = r2c2.number_input("Kelembaban Tanah (%)",    value=0.0,  step=0.1, format="%.2f")
                             td_in    = r2c3.number_input("Suhu Tanah (°C)",         value=20.0, step=0.1, format="%.2f")
                             elev_in  = r2c4.number_input("Ketinggian Lahan (mdpl)", value=float(st.session_state.elevasi_terklik) if st.session_state.elevasi_terklik else 0.0, step=1.0, format="%.1f")
-                            submitted_kes = st.form_submit_button("Cek Kecocokan Lahan Saya")
+                            submitted_kes = st.form_submit_button("Cek Kesesuaian Lahan Saya")
                         if st.button("← Ganti Sumber Data", key="btn_kembali_lab"):
                             st.session_state.sumber_data_npk = None
                             st.session_state.show_kes_form   = False
